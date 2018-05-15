@@ -3,7 +3,10 @@ package com.revolut.moneytransfer.service;
 import com.revolut.moneytransfer.dao.H2Dao;
 import com.revolut.moneytransfer.model.Account;
 
-import javax.ws.rs.*;
+import javax.ws.rs.GET;
+import javax.ws.rs.Path;
+import javax.ws.rs.PathParam;
+import javax.ws.rs.Produces;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.math.BigDecimal;
@@ -25,11 +28,11 @@ public class AccountService {
      * @throws Exception Error while getting accounts
      */
     @GET
-    @Path("/all")
+    @Path("")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getAccounts() throws Exception {
         log.info("REST : getAllAccounts");
-        List<Account> accounts = null;
+        List<Account> accounts;
         try {
              accounts = h2Dao.getAccountDAO().getAllAccounts();
              if(accounts == null){
@@ -56,7 +59,7 @@ public class AccountService {
         if(accountNo == null){
             return Response.serverError().entity("accountId cannot be null.").build();
         }
-        Account account = null;
+        Account account;
         try {
             account = h2Dao.getAccountDAO().getAccountByAccountNo(accountNo);
             if(account == null){
@@ -83,7 +86,7 @@ public class AccountService {
         if(accountNo == null){
             return Response.serverError().entity("accountId cannot be null.").build();
         }
-        BigDecimal balance = null;
+        BigDecimal balance;
         try {
             balance = h2Dao.getAccountDAO().getAccountBalance(accountNo);
             if(balance == null){

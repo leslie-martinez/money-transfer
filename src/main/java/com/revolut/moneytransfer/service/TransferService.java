@@ -21,11 +21,11 @@ public class TransferService {
      * @throws Exception Error while getting transfers
      */
     @GET
-    @Path("/all")
+    @Path("")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getTransfers() throws Exception {
         log.info("REST : getTransfers");
-        List<Transfer> transfers = null;
+        List<Transfer> transfers;
         try {
             transfers = h2Dao.getTransferDAO().getAllTransfers();
             if(transfers == null){
@@ -40,24 +40,55 @@ public class TransferService {
 
     /**
      * Service returning all transfers fro a specific account
-     * @param accountNo Account Number     *
-     * @param startDt
-     * @param endDt
-     * @param format
+     * @param accountNo Account Number
+     * @param startDt query date range startDate
+     * @param endDt query date range endDate
+     * @param format format of dates passed
      * @return List of transfers
      * @throws Exception e
      */
     @GET
-    @Path("/{accountNo}")
+    @Path("/to/{accountNo}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getTransfersByAccountNo(@PathParam("accountNo") Long accountNo, @QueryParam("startDt") String startDt, @QueryParam("endDt") String endDt, @QueryParam("format") String format) throws Exception {
+    public Response getTransfersByToAccountNo(@PathParam("accountNo") Long accountNo, @QueryParam("startDt") String startDt, @QueryParam("endDt") String endDt, @QueryParam("format") String format) throws Exception {
         log.info("REST : getTransferByAccountNo");
         if (accountNo == null) {
             return Response.serverError().entity("accountNo cannot be null.").build();
         }
-        List<Transfer> transfers = null;
+        List<Transfer> transfers;
         try {
-            transfers = h2Dao.getTransferDAO().getTransfersByAccountNo(accountNo);
+            transfers = h2Dao.getTransferDAO().getTransfersByAccountNo(accountNo, "TO");
+            if (transfers == null) {
+                return Response.status(Response.Status.NO_CONTENT).entity("No transfer found for account : " + accountNo).build();
+            }
+        } catch (Exception e) {
+            log.severe("Error while getting transfer.");
+            throw new Exception(e);
+        }
+        return Response.status(Response.Status.OK).entity(transfers).build();
+    }
+
+    /**
+     * Service returning all transfers fro a specific account
+     *
+     * @param accountNo Account Number
+     * @param startDt   query date range startDate
+     * @param endDt     query date range endDate
+     * @param format    format of dates passed
+     * @return List of transfers
+     * @throws Exception e
+     */
+    @GET
+    @Path("/from/{accountNo}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response getTransfersByFromAccountNo(@PathParam("accountNo") Long accountNo, @QueryParam("startDt") String startDt, @QueryParam("endDt") String endDt, @QueryParam("format") String format) throws Exception {
+        log.info("REST : getTransferByAccountNo");
+        if (accountNo == null) {
+            return Response.serverError().entity("accountNo cannot be null.").build();
+        }
+        List<Transfer> transfers;
+        try {
+            transfers = h2Dao.getTransferDAO().getTransfersByAccountNo(accountNo, "FROM");
             if (transfers == null) {
                 return Response.status(Response.Status.NO_CONTENT).entity("No transfer found for account : " + accountNo).build();
             }
@@ -71,15 +102,17 @@ public class TransferService {
 
     /**
      * @param transfer Transfer object
-     * @return
-     * @throws Exception e
+     * @return Response
      */
     @POST
-    public Response transferAmount(Transfer transfer) throws Exception {
+    @Path("")
+    public Response transferAmount(Transfer transfer) {
         log.info("REST : transferAmount");
-        if (transfer == null) {
-            return Response.serverError().entity("transfer object cannot be null.").build();
-        }
+        log.info("transfer.getSourceAccountNo() : " + transfer.getSourceAccountNo());
+        log.info("transfer.getDestinationAccountNo() : " + transfer.getDestinationAccountNo());
+        log.info("transfer.getAmount() : " + transfer.getAmount());
+        log.info("transfer.getCurrencyCode() : " + transfer.getCurrencyCode());
+
         if (transfer.getSourceAccountNo() == null) {
             return Response.serverError().entity("Source account cannot be null.").build();
         }

@@ -37,7 +37,7 @@ public class AccountDao {
      * @throws Exception e
      */
     public List<Account> getAllAccounts() throws Exception {
-        List<Account> accountList = null;
+        List<Account> accountList = new ArrayList<>();
 
         //Load Driver
         Class.forName(JDBC_DRIVER);
@@ -46,8 +46,8 @@ public class AccountDao {
         try(Connection conn = DriverManager.getConnection(DB_URL,USER,PASS);
             Statement stmt = conn.createStatement();
             ResultSet rs = stmt.executeQuery(SELECT_ALL)){
-            if(rs != null)
-                accountList = new ArrayList<>();
+            if (rs == null)
+                throw new SQLException("SQL Exception while executing : " + SELECT_ALL);
             while (rs.next()) {
                 Account acc = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"));
                 accountList.add(acc);
@@ -96,7 +96,7 @@ public class AccountDao {
                     rs.close();
             } catch(SQLException se) {
                 // Handle errors for JDBC
-                throw new Exception(se);
+                log.severe("Unable to close ResultSet : " + se.getMessage());
             }
             // finally block used to close remaining resources
             // end finally try
@@ -138,7 +138,7 @@ public class AccountDao {
                     rs.close();
             } catch(SQLException se) {
                 // Handle errors for JDBC
-                throw new Exception(se);
+                log.severe("Unable to close ResultSet : " + se.getMessage());
             }
             // finally block used to close remaining resources
             // end finally try
@@ -180,7 +180,7 @@ public class AccountDao {
                     rs.close();
             } catch(SQLException se) {
                 // Handle errors for JDBC
-                throw new Exception(se);
+                log.severe("Unable to close ResultSet : " + se.getMessage());
             }
             // finally block used to close remaining resources
             // end finally try
@@ -193,7 +193,7 @@ public class AccountDao {
      * @return number of account successfully updated : 0 for failed / 1 for success
      * @throws Exception e
      */
-    public int updateAccountBalance(Long accountNo, BigDecimal amount) throws Exception {
+    int updateAccountBalance(Long accountNo, BigDecimal amount) throws Exception {
         log.info("updateAccountBalance : "+ accountNo + " amount : " + amount);
         ResultSet rs = null;
         int response = 0;
@@ -223,14 +223,17 @@ public class AccountDao {
             String currencyCode = account.getCurrencyCode();
             try {
                 Currency instance = Currency.getInstance(currencyCode);
+                //noinspection ResultOfMethodCallIgnored
                 instance.getCurrencyCode().equals(currencyCode);
             } catch (Exception e) {
+                log.info("Invalid currency code : " + currencyCode);
                 return 2;
             }
             //Validating new amount
             BigDecimal newBalance = account.getBalance().add(amount);
             //On successful lock, check account balance
             if(newBalance.compareTo(new BigDecimal(0)) < 0){
+                log.info("Insufficient balance on account : " + accountNo);
                 return 3;
             }
             //On Validation successful, update balance
