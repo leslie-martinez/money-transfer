@@ -125,53 +125,20 @@ public class TransferService {
         else if (transfer.getCurrencyCode() == null) {
             return Response.serverError().entity("Currency cannot be null.").build();
         }
-        int response;
+        Transfer.transferResponse response;
         try {
-            response = h2Dao.getTransferDAO().executeTransfer(transfer);
-            if (response == transferResponse.INVALID_FROM_ACC.getCode()) {
-                return Response.status(Response.Status.NOT_FOUND).entity(transferResponse.INVALID_FROM_ACC.getErrorMessage() + transfer.getSourceAccountNo()).build();
-            }
-            else if(response == transferResponse.INVALID_TO_ACC.getCode()){
-                return Response.status(Response.Status.NOT_FOUND).entity(transferResponse.INVALID_TO_ACC.getErrorMessage() + transfer.getDestinationAccountNo()).build();
-            }
-            else if(response == transferResponse.INSUFFICIENT_FUND.getCode()){
-                return Response.status(Response.Status.BAD_REQUEST).entity(transferResponse.INSUFFICIENT_FUND.getErrorMessage() + transfer.getSourceAccountNo()).build();
-            }
-            else if(response == transferResponse.INVALID_CURRENCY_FROM_ACC.getCode()){
-                return Response.status(Response.Status.BAD_REQUEST).entity(transferResponse.INVALID_CURRENCY_FROM_ACC.getErrorMessage() + transfer.getSourceAccountNo()).build();
-            }
-            else if(response == transferResponse.INVALID_CURRENCY_TO_ACC.getCode()){
-                return Response.status(Response.Status.BAD_REQUEST).entity(transferResponse.INVALID_CURRENCY_TO_ACC.getErrorMessage() + transfer.getDestinationAccountNo()).build();
+            response = h2Dao.getTransferDAO().processTransfer(transfer);
+            if (response != null) {
+                if (response == Transfer.transferResponse.INVALID_FROM_ACC || response == Transfer.transferResponse.INVALID_TO_ACC) {
+                    return Response.status(Response.Status.NOT_FOUND).entity(response.getErrorMessage() + transfer.getSourceAccountNo()).build();
+                } else if (response == Transfer.transferResponse.INSUFFICIENT_FUND || response == Transfer.transferResponse.INVALID_CURRENCY_FROM_ACC || response == Transfer.transferResponse.INVALID_CURRENCY_TO_ACC) {
+                    return Response.status(Response.Status.BAD_REQUEST).entity(response.getErrorMessage() + transfer.getSourceAccountNo()).build();
+                }
             }
         } catch (Exception e) {
-            log.severe("Error while getting transfer.");
-            return Response.serverError().entity("Error while getting transfer.").build();
+            log.severe("Error while getting transfer : " + e.getMessage());
+            return Response.serverError().entity("Error while getting transfer : " + e.getMessage()).build();
         }
         return Response.status(Response.Status.CREATED).build();
-    }
-
-    private enum transferResponse{
-        SUCCESS(0, null),
-        INVALID_FROM_ACC(1, "Invalid account : "),
-        INVALID_TO_ACC(2, "Invalid destination account : "),
-        INSUFFICIENT_FUND(3, "Insufficient fund on account : "),
-        INVALID_CURRENCY_FROM_ACC(4, "Invalid currency on sending account : "),
-        INVALID_CURRENCY_TO_ACC(5, "Invalid currency on destination account : ");
-
-        private int code;
-        private String errorMessage;
-
-        transferResponse(int code, String errorMessage){
-            this.code = code;
-            this.errorMessage = errorMessage;
-        }
-
-        public int getCode() {
-            return code;
-        }
-
-        public String getErrorMessage() {
-            return errorMessage;
-        }
     }
 }
