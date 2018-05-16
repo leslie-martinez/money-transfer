@@ -1,12 +1,9 @@
 package com.revolut.moneytransfer.model;
 
-import java.io.Serializable;
-
 /**
  * User Model Class
  */
-public class User implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class User extends Generic {
 
     /**
      * User unique Identifier

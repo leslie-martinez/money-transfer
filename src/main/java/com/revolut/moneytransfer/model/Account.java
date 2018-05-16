@@ -1,13 +1,11 @@
 package com.revolut.moneytransfer.model;
 
-import java.io.Serializable;
 import java.math.BigDecimal;
 
 /**
  * Account Model Class
  */
-public class Account implements Serializable {
-    private static final long serialVersionUID = 1L;
+public class Account extends Generic {
     /**
      * Account unique Identifier
      */
