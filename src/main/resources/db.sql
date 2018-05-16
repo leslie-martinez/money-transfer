@@ -53,7 +53,7 @@ CREATE SEQUENCE ACCOUNT_USER_SEQ
 COMMIT;
 
 -- ACCOUNT_USER TABLE DATA POPULATION
-INSERT INTO ACCOUNT_USER values (ACCOUNT_USER_SEQ.nextVal, 'Fortun Allaire', '68, place Maurice-Charretier 08000 CHARLEVILLE-MÉZIÈRES');
+INSERT INTO ACCOUNT_USER values (ACCOUNT_USER_SEQ.nextVal, 'Fortun Allaire', '68, place Maurice-Charretier 08000 CHARLEVILLE-MEZIERES');
 INSERT INTO ACCOUNT_USER values (ACCOUNT_USER_SEQ.nextVal, 'Nadia R. Odell', '2807 Lakewood Drive Englewood, NJ 07631');
 INSERT INTO ACCOUNT_USER values (ACCOUNT_USER_SEQ.nextVal, 'Melusina Tan', '71 Wilkie Road 228071 Singapore');
 INSERT INTO ACCOUNT_USER values (ACCOUNT_USER_SEQ.nextVal, 'Ella Raiwala', '91 Glen William Road GERMANTOWN QLD 4871');

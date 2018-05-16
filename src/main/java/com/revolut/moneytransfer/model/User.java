@@ -17,12 +17,18 @@ public class User implements Serializable {
      */
     private String name;
 
+    /**
+     * User Address
+     */
+    private String address;
+
     public User() {
     }
 
-    public User(int id, String name) {
+    public User(int id, String name, String address) {
         this.id = id;
         this.name = name;
+        this.address = address;
     }
 
     public int getId() {
@@ -41,4 +47,11 @@ public class User implements Serializable {
         this.name = name;
     }
 
+    public String getAddress() {
+        return address;
+    }
+
+    public void setAddress(String address) {
+        this.address = address;
+    }
 }

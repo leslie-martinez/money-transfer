@@ -24,11 +24,11 @@ public class UserService {
      * @throws Exception Error while getting users
      */
     @GET
-    @Path("/all")
+    @Path("")
     @Produces(MediaType.APPLICATION_JSON)
     public Response getUsers() throws Exception {
         log.info("REST : getUsers");
-        List<User> users = null;
+        List<User> users;
         try {
             users = h2Dao.getUserDAO().getAllUsers();
             if(users == null){
@@ -55,7 +55,7 @@ public class UserService {
         if (accountNo == null) {
             return Response.serverError().entity("accountNo cannot be null.").build();
         }
-        User user = null;
+        User user;
         try {
             user = h2Dao.getUserDAO().getUserByAccountNo(accountNo);
             if (user == null) {
