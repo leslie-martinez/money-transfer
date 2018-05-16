@@ -66,7 +66,7 @@ public class AccountDao {
      * @return Account
      * @throws Exception e
      */
-    public Account getAccountById(int accountId) throws Exception {
+    private Account getAccountById(int accountId) throws Exception {
         log.info("getAccountById : "+ accountId);
         ResultSet rs = null;
         Account account = null;
@@ -90,14 +90,7 @@ public class AccountDao {
         } catch(Exception e) {
             throw new Exception(e);
         } finally {
-            try {
-                //Clean-up environment
-                if(rs != null)
-                    rs.close();
-            } catch(SQLException se) {
-                // Handle errors for JDBC
-                log.severe("Unable to close ResultSet : " + se.getMessage());
-            }
+            DbUtils.closeQuietly(rs);
             // finally block used to close remaining resources
             // end finally try
         }
@@ -132,14 +125,7 @@ public class AccountDao {
         } catch(Exception e) {
             throw new Exception(e);
         } finally {
-            try {
-                //Clean-up environment
-                if(rs != null)
-                    rs.close();
-            } catch(SQLException se) {
-                // Handle errors for JDBC
-                log.severe("Unable to close ResultSet : " + se.getMessage());
-            }
+            DbUtils.closeQuietly(rs);
             // finally block used to close remaining resources
             // end finally try
         }
@@ -174,14 +160,7 @@ public class AccountDao {
         } catch(Exception e) {
             throw new Exception(e);
         } finally {
-            try {
-                //Clean-up environment
-                if(rs != null)
-                    rs.close();
-            } catch(SQLException se) {
-                // Handle errors for JDBC
-                log.severe("Unable to close ResultSet : " + se.getMessage());
-            }
+            DbUtils.closeQuietly(rs);
             // finally block used to close remaining resources
             // end finally try
         }

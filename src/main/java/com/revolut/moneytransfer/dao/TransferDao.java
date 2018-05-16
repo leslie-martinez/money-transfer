@@ -1,6 +1,7 @@
 package com.revolut.moneytransfer.dao;
 
 import com.revolut.moneytransfer.model.Transfer;
+import org.apache.commons.dbutils.DbUtils;
 
 import java.math.BigDecimal;
 import java.sql.*;
@@ -58,7 +59,7 @@ public class TransferDao {
     public List<Transfer> getTransfersByAccountNo(Long accountNo, String accountType) throws Exception {
         log.info("getTransfersByAccountNo : " + accountNo);
         ResultSet rs = null;
-        List<Transfer> transfersList;
+        List<Transfer> transfersList = new ArrayList<>();
 
         //Load Driver
         Class.forName(JDBC_DRIVER);
@@ -73,7 +74,6 @@ public class TransferDao {
             stmt.setLong(1, accountNo);
             // Execute a query
             rs = stmt.executeQuery();
-            transfersList = new ArrayList<>();
             while (rs.next()) {
                 Transfer transfer = new Transfer(rs.getInt("ID"), rs.getLong("FROM_ACCOUNT_NO"), rs.getLong("TO_ACCOUNT_NO"), rs.getBigDecimal("AMOUNT"), rs.getString("CURRENCY_CODE"), rs.getString("STATUS"));
                 transfersList.add(transfer);
@@ -85,19 +85,19 @@ public class TransferDao {
         } catch (Exception e) {
             throw new Exception(e);
         } finally {
-            try {
-                //Clean-up environment
-                if (rs != null)
-                    rs.close();
-            } catch (SQLException se) {
-                log.severe("Unable to close ResultSet : " + se.getMessage());
-            }
+            DbUtils.closeQuietly(rs);
             // finally block used to close remaining resources
             // end finally try
         }
     }
 
     public int executeTransfer(Transfer transfer) throws Exception {
+        //TODO to rearrange as discussed with Elie to have all validations first (new private method)
+        //TODO then secure the amount on the sender account
+        //TODO then proceed to transfer
+        //TODO In any case, keep transfer record in DB
+        //TODO to ADD date/time of creation/last update in all tables
+
         log.info("@@@ executeTransfer");
         int response = 0;
         int transferId = 0;
