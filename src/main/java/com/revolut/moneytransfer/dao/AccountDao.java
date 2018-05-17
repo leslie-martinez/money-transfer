@@ -51,7 +51,7 @@ public class AccountDao {
             if (rs == null)
                 throw new SQLException("SQL Exception while executing : " + SELECT_ALL);
             while (rs.next()) {
-                Account acc = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"));
+                Account acc = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
                 accountList.add(acc);
             }
             return accountList;
@@ -84,7 +84,7 @@ public class AccountDao {
             // Execute a query
             rs = stmt.executeQuery();
             if (rs.next()) {
-                account = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"));
+                account = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
             }
             return account;
         } catch(SQLException se) {
@@ -120,7 +120,7 @@ public class AccountDao {
             //Execute a query
             rs = stmt.executeQuery();
             if (rs.next()) {
-                account = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"));
+                account = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
             }
             return account;
         } catch(SQLException se) {
@@ -177,7 +177,7 @@ public class AccountDao {
      * @return Account locked for update
      * @throws Exception e
      */
-    protected Account lockAccountByNumber(Long accountNo) throws Exception {
+    Account lockAccountByNumber(Long accountNo) throws Exception {
         log.info("lockAccountByNumber : " + accountNo);
         ResultSet rs = null;
         BigDecimal balance = null;
@@ -193,7 +193,7 @@ public class AccountDao {
             //Execute Lock query
             rs = lockStmt.executeQuery();
             if (rs.next()) {
-                return new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"));
+                return new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
             }
             return null;
         } catch (Exception e) {
@@ -214,16 +214,10 @@ public class AccountDao {
      * @return Transfer.transferResponse
      * @throws Exception e
      */
-    public Transfer.transferResponse transferFund(Account fromAccount, Account toAccount, BigDecimal amount, String currencyCode) throws Exception {
+    Transfer.transferResponse transferFund(Account fromAccount, Account toAccount, BigDecimal amount, String currencyCode) throws Exception {
         log.info("transferFund from : " + fromAccount.getAccountNo() + " to : " + toAccount.getAccountNo() + " of amount : " + amount + currencyCode);
         Connection conn = null;
         PreparedStatement updateStmt = null;
-
-        //TODO change currency rate by real calculation
-        BigDecimal sourceCurrencyRate = new BigDecimal(Math.random(), MathContext.DECIMAL64); // based on fromCurrencyCode to transfer currencyCode
-        log.info("sourceCurrencyRate : " + sourceCurrencyRate);
-        BigDecimal destinationCurrencyRate = new BigDecimal(Math.random(), MathContext.DECIMAL64);// based on transfer currencyCode to toCurrencyCode
-        log.info("destinationCurrencyRate : " + destinationCurrencyRate);
 
         //Load Driver
         Class.forName(JDBC_DRIVER);
@@ -233,23 +227,34 @@ public class AccountDao {
             conn.setAutoCommit(false);
             updateStmt = conn.prepareStatement(UPDATE_ACCOUNT_BALANCE);
 
-            //Converting currency for Source account
+            //If transfer currency != source currency : Converting currency for Source account
             String fromCurrencyCode = fromAccount.getCurrencyCode();
-            BigDecimal amountToDeduct = amount.multiply(sourceCurrencyRate);
+            BigDecimal amountToDeduct = amount;
+            if (!fromCurrencyCode.equalsIgnoreCase(currencyCode)) {
+                //TODO change currency rate by real calculation
+                BigDecimal sourceCurrencyRate = new BigDecimal(Math.random(), MathContext.DECIMAL64); // based on fromCurrencyCode to transfer currencyCode
+                log.info("sourceCurrencyRate : " + sourceCurrencyRate);
+                amountToDeduct = amount.multiply(sourceCurrencyRate);
+            }
             BigDecimal sourceNewBalance = fromAccount.getBalance().subtract(amountToDeduct);
 
-            //Proceed with update source account
+            //Proceed with add update source account to batch
             updateStmt.setBigDecimal(1, sourceNewBalance);
             updateStmt.setLong(2, fromAccount.getAccountNo());
             updateStmt.addBatch();
 
-            //Converting currency for Destination account
-            //TODO check that transfer currency is either equal to source or destination currency
+            //If transfer currency != destination currency : Converting currency for Destination account
             String toCurrencyCode = toAccount.getCurrencyCode();
-            BigDecimal amountToCredit = amount.multiply(destinationCurrencyRate);
+            BigDecimal amountToCredit = amount;
+            if (!toCurrencyCode.equalsIgnoreCase(currencyCode)) {
+                //TODO change currency rate by real calculation
+                BigDecimal destinationCurrencyRate = new BigDecimal(Math.random(), MathContext.DECIMAL64);// based on transfer currencyCode to toCurrencyCode
+                log.info("destinationCurrencyRate : " + destinationCurrencyRate);
+                amountToCredit = amount.multiply(destinationCurrencyRate);
+            }
             BigDecimal destinationNewBalance = toAccount.getBalance().add(amountToCredit);
 
-            //Proceed with update destination account
+            //Proceed with add update update destination account to batch
             updateStmt.setBigDecimal(1, destinationNewBalance);
             updateStmt.setLong(2, toAccount.getAccountNo());
             updateStmt.addBatch();

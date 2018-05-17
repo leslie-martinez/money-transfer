@@ -38,7 +38,7 @@ public class UserDao {
             rs = stmt.executeQuery();
             User user = null;
             if (rs.next()) {
-                user = new User(rs.getInt("ID"), rs.getString("NAME"), rs.getString("ADDRESS"));
+                user = new User(rs.getInt("ID"), rs.getString("NAME"), rs.getString("ADDRESS"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
             }
             return user;
         } catch (SQLException se) {
@@ -67,7 +67,7 @@ public class UserDao {
             if (rs == null)
                 throw new SQLException("SQL Exception while executing : " + SELECT_ALL);
             while (rs.next()) {
-                User user = new User(rs.getInt("ID"), rs.getString("NAME"), rs.getString("ADDRESS"));
+                User user = new User(rs.getInt("ID"), rs.getString("NAME"), rs.getString("ADDRESS"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
                 usersList.add(user);
             }
             return usersList;

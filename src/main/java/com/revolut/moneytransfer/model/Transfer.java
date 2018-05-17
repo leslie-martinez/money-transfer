@@ -130,7 +130,9 @@ public class Transfer extends Generic {
         INVALID_TO_ACC(2, "Invalid destination account : "),
         INSUFFICIENT_FUND(3, "Insufficient fund on account : "),
         INVALID_CURRENCY_FROM_ACC(4, "Invalid currency on sending account : "),
-        INVALID_CURRENCY_TO_ACC(5, "Invalid currency on destination account : ");
+        INVALID_CURRENCY_TO_ACC(5, "Invalid currency on destination account : "),
+        INVALID_CURRENCY_TRANSFER(6, "Invalid transfer currency."),
+        TRANSFER_CURRENCY_MISMATCH(7, "Transfer currency doesn't correspond to either account currencies.");
 
         private int code;
         private String errorMessage;

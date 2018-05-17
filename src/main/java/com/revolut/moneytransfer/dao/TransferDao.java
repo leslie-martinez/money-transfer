@@ -101,8 +101,6 @@ public class TransferDao {
      * @throws Exception e
      */
     public Transfer.transferResponse processTransfer(Transfer transfer) throws Exception {
-        //TODO to ADD date/time of creation/last update in all tables
-
         log.info("@@@ processTransfer");
         int response = 0;
         int transferId = 0;
@@ -141,7 +139,7 @@ public class TransferDao {
 
             // validation method to call before any fund movement
             Transfer.transferResponse validTransactionResponse = transactionValidations(transfer);
-            log.info("transactionValidations : " + validTransactionResponse.getErrorMessage());
+            log.info("transactionValidations : " + (validTransactionResponse != null ? validTransactionResponse.getErrorMessage() : null));
 
             //Lock both accounts until transaction completed
             Account fromAccount = accountDao.lockAccountByNumber(transfer.getSourceAccountNo());
@@ -181,7 +179,7 @@ public class TransferDao {
         } catch(SQLException se) {
             log.severe("@@@ SQLException : " + se.getMessage());
             if (conn != null) {
-                //In case of unexpected exception, rollback transfer fund and update transfer record as failed.
+                //FIXME : In case of unexpected exception, rollback transfer fund and update transfer record as failed.
                 conn.rollback();
                 updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
                 if (updateStmt != null) {
@@ -195,7 +193,7 @@ public class TransferDao {
         } catch(Exception e) {
             log.severe("@@@ Exception : " + e.getMessage() + conn + updateStmt);
             if (conn != null) {
-                //In case of unexpected exception, rollback transfer fund and update transfer record as failed.
+                //FIXME : In case of unexpected exception, rollback transfer fund and update transfer record as failed.
                 conn.rollback();
                 updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
                 if (updateStmt != null) {
@@ -222,12 +220,25 @@ public class TransferDao {
         if (fromAccount == null) {
             return Transfer.transferResponse.INVALID_FROM_ACC;
         }
+        log.info("Valid Source Account.");
         Account toAccount = accountDao.getAccountByAccountNo(transfer.getDestinationAccountNo());
         if (toAccount == null) {
             return Transfer.transferResponse.INVALID_TO_ACC;
         }
+        log.info("Valid Destination Account.");
 
         //Validating currency codes
+        String transferCurrencyCode = transfer.getCurrencyCode();
+        try {
+            Currency instance = Currency.getInstance(transferCurrencyCode);
+            //noinspection ResultOfMethodCallIgnored
+            instance.getCurrencyCode().equals(transferCurrencyCode);
+        } catch (Exception e) {
+            log.info("Invalid currency code : " + transferCurrencyCode);
+            return Transfer.transferResponse.INVALID_CURRENCY_TRANSFER;
+        }
+        log.info("Valid Transfer Currency.");
+
         String fromCurrencyCode = fromAccount.getCurrencyCode();
         try {
             Currency instance = Currency.getInstance(fromCurrencyCode);
@@ -237,6 +248,7 @@ public class TransferDao {
             log.info("Invalid currency code : " + fromCurrencyCode);
             return Transfer.transferResponse.INVALID_CURRENCY_FROM_ACC;
         }
+        log.info("Valid Source Account Currency.");
 
         String toCurrencyCode = toAccount.getCurrencyCode();
         try {
@@ -246,6 +258,12 @@ public class TransferDao {
         } catch (Exception e) {
             log.info("Invalid currency code : " + toCurrencyCode);
             return Transfer.transferResponse.INVALID_CURRENCY_TO_ACC;
+        }
+        log.info("Valid Destination Account Currency.");
+
+        if (!transferCurrencyCode.equalsIgnoreCase(fromCurrencyCode) && !transferCurrencyCode.equalsIgnoreCase(toCurrencyCode)) {
+            log.info("Transfer currency doesn't correspond to either account currencies.");
+            return Transfer.transferResponse.TRANSFER_CURRENCY_MISMATCH;
         }
 
 
