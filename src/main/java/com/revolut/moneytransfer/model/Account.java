@@ -1,6 +1,7 @@
 package com.revolut.moneytransfer.model;
 
 import java.math.BigDecimal;
+import java.sql.Date;
 
 /**
  * Account Model Class
@@ -40,12 +41,14 @@ public class Account extends Generic {
      * @param balance account balance
      * @param currencyCode account currency code
      */
-    public Account(int id, int accountOwnerId, long accountNo, BigDecimal balance, String currencyCode){
+    public Account(int id, int accountOwnerId, long accountNo, BigDecimal balance, String currencyCode, Date createdDt, Date lastUpdateDt) {
         this.id = id;
         this.accountNo = accountNo;
         this.balance = balance;
         this.currencyCode = currencyCode;
         this.accountOwnerId = accountOwnerId;
+        this.setCreatedDt(createdDt);
+        this.setLastUpdateDt(lastUpdateDt);
     }
 
     public int getId() {

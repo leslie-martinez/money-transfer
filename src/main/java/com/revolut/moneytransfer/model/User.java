@@ -1,5 +1,7 @@
 package com.revolut.moneytransfer.model;
 
+import java.sql.Date;
+
 /**
  * User Model Class
  */
@@ -22,10 +24,12 @@ public class User extends Generic {
     public User() {
     }
 
-    public User(int id, String name, String address) {
+    public User(int id, String name, String address, Date createdDt, Date lastUpdateDt) {
         this.id = id;
         this.name = name;
         this.address = address;
+        this.setCreatedDt(createdDt);
+        this.setLastUpdateDt(lastUpdateDt);
     }
 
     public int getId() {
