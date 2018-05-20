@@ -3,7 +3,7 @@ package com.revolut.moneytransfer.model;
 import java.io.Serializable;
 import java.sql.Date;
 
-public class Generic implements Serializable {
+class Generic implements Serializable {
     private static final long serialVersionUID = 1L;
 
     /**

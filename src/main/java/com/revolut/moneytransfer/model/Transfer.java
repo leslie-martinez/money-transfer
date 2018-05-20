@@ -134,8 +134,8 @@ public class Transfer extends Generic {
         INVALID_CURRENCY_TRANSFER(6, "Invalid transfer currency."),
         TRANSFER_CURRENCY_MISMATCH(7, "Transfer currency doesn't correspond to either account currencies.");
 
-        private int code;
-        private String errorMessage;
+        private final int code;
+        private final String errorMessage;
 
         transferResponse(int code, String errorMessage) {
             this.code = code;
