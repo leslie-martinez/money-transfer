@@ -137,15 +137,15 @@ public class TransferDao {
             log.info("Transfer successfully inserted in PENDING status. ID : " + transferId);
             conn.commit();
 
-            // validation method to call before any fund movement
-            Transfer.transferResponse validTransactionResponse = transactionValidations(transfer);
-            log.info("transactionValidations : " + (validTransactionResponse != null ? validTransactionResponse.getErrorMessage() : null));
-
             //Lock both accounts until transaction completed
             Account fromAccount = accountDao.lockAccountByNumber(transfer.getSourceAccountNo());
             Account toAccount = accountDao.lockAccountByNumber(transfer.getDestinationAccountNo());
 
-            if (validTransactionResponse != null) {
+            // validation method to call before any fund movement
+            Transfer.transferResponse validTransactionResponse = transactionValidations(transfer);
+            log.info("transactionValidations : " + validTransactionResponse.getErrorMessage());
+
+            if (!validTransactionResponse.equals(Transfer.transferResponse.SUCCESS)) {
                 log.info("Transfer validation error -- Update transfer record to failed.");
                 updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
                 updateStmt.setInt(1, transferId);
@@ -159,7 +159,7 @@ public class TransferDao {
 
             Transfer.transferResponse transferFundResponse = accountDao.transferFund(fromAccount, toAccount, transfer.getAmount(), transfer.getCurrencyCode());
 
-            if (transferFundResponse != null) {
+            if (!transferFundResponse.equals(Transfer.transferResponse.SUCCESS)) {
                 log.info("Transfer fund error -- Update transfer record to failed.");
                 updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
                 updateStmt.setInt(1, transferId);
@@ -175,7 +175,7 @@ public class TransferDao {
             updateStmt.setInt(1, transferId);
             updateStmt.executeUpdate();
             conn.commit();
-            return null;
+            return Transfer.transferResponse.SUCCESS;
         } catch(SQLException se) {
             log.severe("@@@ SQLException : " + se.getMessage());
             if (conn != null) {
@@ -278,6 +278,6 @@ public class TransferDao {
             return Transfer.transferResponse.INSUFFICIENT_FUND;
         }
         log.info("All transfer validations passed.");
-        return null;
+        return Transfer.transferResponse.SUCCESS;
     }
 }

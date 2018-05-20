@@ -180,7 +180,6 @@ public class AccountDao {
     Account lockAccountByNumber(Long accountNo) throws Exception {
         log.info("lockAccountByNumber : " + accountNo);
         ResultSet rs = null;
-        BigDecimal balance = null;
 
         //Load Driver
         Class.forName(JDBC_DRIVER);
@@ -205,12 +204,12 @@ public class AccountDao {
     }
 
     /**
-     * Proceed with the fund transfer - to be called after verification and accouts lock for update
+     * Proceed with the fund transfer - to be called after verification and accounts lock for update
      *
      * @param fromAccount  source account
      * @param toAccount    destination account
      * @param amount       transaction amount
-     * @param currencyCode transation currency code
+     * @param currencyCode transaction currency code
      * @return Transfer.transferResponse
      * @throws Exception e
      */
@@ -277,6 +276,6 @@ public class AccountDao {
             DbUtils.closeQuietly(conn);
             DbUtils.closeQuietly(updateStmt);
         }
-        return null;
+        return Transfer.transferResponse.SUCCESS;
     }
 }
