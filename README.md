@@ -1,9 +1,8 @@
 # money-transfer
 Money Transfer Project
 
-## Requirements
+## Requirements & tools
 
-###Main application:
 
 - Java 8
 - Maven 3+
