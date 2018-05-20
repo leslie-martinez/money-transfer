@@ -1,5 +1,6 @@
 package com.revolut.moneytransfer.dao;
 
+import org.apache.commons.dbutils.DbUtils;
 import org.h2.tools.RunScript;
 
 import java.io.FileNotFoundException;
@@ -8,8 +9,6 @@ import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
 import java.util.logging.Logger;
-
-import org.apache.commons.dbutils.DbUtils;
 
 public class H2Dao {
     static final private Logger log = Logger.getLogger("H2Dao");
@@ -21,9 +20,11 @@ public class H2Dao {
     static final private String USER = "sa";
     static final private String PASS = "sa";
 
-    private final UserDao userDao = new UserDao();
+    private final CustomerDao customerDao = new CustomerDao();
     private final AccountDao accountDao = new AccountDao();
     private final TransferDao transferDao = new TransferDao();
+    private final RateDao rateDao = new RateDao();
+
 
     public H2Dao() {
         // init: load driver
@@ -38,8 +39,8 @@ public class H2Dao {
 
     }
 
-    public UserDao getUserDAO() {
-        return userDao;
+    public CustomerDao getCustomerDao() {
+        return customerDao;
     }
 
     public AccountDao getAccountDAO() {
@@ -48,6 +49,10 @@ public class H2Dao {
 
     public TransferDao getTransferDAO() {
         return transferDao;
+    }
+
+    public RateDao getRateDao() {
+        return rateDao;
     }
 
 

@@ -20,22 +20,42 @@ public class Transfer extends Generic {
      */
     private Long destinationAccountNo;
     /**
-     * Amount to transfer
+     * Amount debited from source account
      */
-    private BigDecimal amount;
+    private BigDecimal debitedAmount;
+    /**
+     * Currency Code of the source account
+     */
+    private String sourceCurrencyCode;
+
+    /**
+     *  Amount to transfer
+     */
+    private BigDecimal transferAmount;
     /**
      * Currency Code of the transaction
      */
-    private String currencyCode;
+    private String transferCurrencyCode;
+
+    /**
+     * Amount credited on destination account
+     */
+    private BigDecimal creditedAmount;
+    /**
+     * Currency Code of the credited amount
+     */
+    private String destinationCurrencyCode;
+
+    /**
+     * Transfer rate
+     */
+    private BigDecimal rate;
     /**
      * Transaction status
      */
     private String status;
 
-    /**
-     * Transfer remarks
-     */
-    private String remarks;
+    private Transfer.transferResponse response;
 
     /**
      * Default Transfer Constructor
@@ -48,23 +68,39 @@ public class Transfer extends Generic {
      * @param id transfer uid
      * @param sourceAccountNo source account id
      * @param destinationAccountNo destination account id
-     * @param amount amount to be transferred
-     * @param currencyCode amount currency code
+     * @param debitedAmount debitedAmount to be transferred
+     * @param sourceCurrencyCode debitedAmount currency code
+     * @param transferAmount amount to be transferred
+     * @param transferCurrencyCode transfer currency
+     * @param creditedAmount amount to be credited
+     * @param destinationCurrencyCode destination currency
      * @param status status of transfer
-     * @param remarks remarks of the transfer
+     * @param rate rate of the transfer
      * @param createdDt creation date time of transfer
      * @param lastUpdateDt last update date time of transfer
      */
-    public Transfer(int id, Long sourceAccountNo, Long destinationAccountNo, BigDecimal amount, String currencyCode, String status, String remarks, Date createdDt, Date lastUpdateDt) {
+    public Transfer(int id, Long sourceAccountNo, Long destinationAccountNo, BigDecimal debitedAmount, String sourceCurrencyCode, BigDecimal transferAmount, String transferCurrencyCode, BigDecimal creditedAmount, String destinationCurrencyCode, BigDecimal rate, String status, Date createdDt, Date lastUpdateDt) {
         this.id = id;
         this.sourceAccountNo = sourceAccountNo;
         this.destinationAccountNo = destinationAccountNo;
-        this.amount = amount;
-        this.currencyCode = currencyCode;
+        this.debitedAmount = debitedAmount;
+        this.transferAmount = transferAmount;
+        this.sourceCurrencyCode = sourceCurrencyCode;
+        this.transferCurrencyCode = transferCurrencyCode;
         this.status = status;
-        this.remarks = remarks;
+        this.rate = rate;
+        this.creditedAmount = creditedAmount;
+        this.destinationCurrencyCode = destinationCurrencyCode;
         this.setCreatedDt(createdDt);
-        this.setLastUpdateDt(lastUpdateDt);
+        this.setLastUpdatedDt(lastUpdateDt);
+    }
+
+
+    public Transfer(Long sourceAccountNo, Long destinationAccountNo, BigDecimal transferAmount, String transferCurrencyCode) {
+        this.sourceAccountNo = sourceAccountNo;
+        this.destinationAccountNo = destinationAccountNo;
+        this.transferAmount = transferAmount;
+        this.transferCurrencyCode = transferCurrencyCode;
     }
 
     public int getId() {
@@ -91,20 +127,36 @@ public class Transfer extends Generic {
         this.destinationAccountNo = destinationAccountNo;
     }
 
-    public BigDecimal getAmount() {
-        return amount;
+    public BigDecimal getDebitedAmount() {
+        return debitedAmount;
     }
 
-    public void setAmount(BigDecimal amount) {
-        this.amount = amount;
+    public void setDebitedAmount(BigDecimal debitedAmount) {
+        this.debitedAmount = debitedAmount;
     }
 
-    public String getCurrencyCode() {
-        return currencyCode;
+    public String getSourceCurrencyCode() {
+        return sourceCurrencyCode;
     }
 
-    public void setCurrencyCode(String currencyCode) {
-        this.currencyCode = currencyCode;
+    public void setSourceCurrencyCode(String sourceCurrencyCode) {
+        this.sourceCurrencyCode = sourceCurrencyCode;
+    }
+
+    public BigDecimal getCreditedAmount() {
+        return creditedAmount;
+    }
+
+    public void setCreditedAmount(BigDecimal creditedAmount) {
+        this.creditedAmount = creditedAmount;
+    }
+
+    public String getDestinationCurrencyCode() {
+        return destinationCurrencyCode;
+    }
+
+    public void setDestinationCurrencyCode(String destinationCurrencyCode) {
+        this.destinationCurrencyCode = destinationCurrencyCode;
     }
 
     public String getStatus() {
@@ -115,24 +167,49 @@ public class Transfer extends Generic {
         this.status = status;
     }
 
-    public String getRemarks() {
-        return remarks;
+    public BigDecimal getRate() {
+        return rate;
     }
 
-    public void setRemarks(String remarks) {
-        this.remarks = remarks;
+    public void setRate(BigDecimal rate) {
+        this.rate = rate;
+    }
+
+    public BigDecimal getTransferAmount() {
+        return transferAmount;
+    }
+
+    public void setTransferAmount(BigDecimal transferAmount) {
+        this.transferAmount = transferAmount;
+    }
+
+    public String getTransferCurrencyCode() {
+        return transferCurrencyCode;
+    }
+
+    public void setTransferCurrencyCode(String transferCurrencyCode) {
+        this.transferCurrencyCode = transferCurrencyCode;
+    }
+
+    public transferResponse getResponse() {
+        return response;
+    }
+
+    public void setResponse(transferResponse response) {
+        this.response = response;
     }
 
 
     public enum transferResponse {
         SUCCESS(0, null),
-        INVALID_FROM_ACC(1, "Invalid account : "),
-        INVALID_TO_ACC(2, "Invalid destination account : "),
-        INSUFFICIENT_FUND(3, "Insufficient fund on account : "),
-        INVALID_CURRENCY_FROM_ACC(4, "Invalid currency on sending account : "),
-        INVALID_CURRENCY_TO_ACC(5, "Invalid currency on destination account : "),
+        INVALID_FROM_ACC(1, "Invalid source account."),
+        INVALID_TO_ACC(2, "Invalid destination account."),
+        INSUFFICIENT_FUND(3, "Insufficient fund on source account."),
+        INVALID_CURRENCY_FROM_ACC(4, "Invalid currency on source account."),
+        INVALID_CURRENCY_TO_ACC(5, "Invalid currency on destination account."),
         INVALID_CURRENCY_TRANSFER(6, "Invalid transfer currency."),
-        TRANSFER_CURRENCY_MISMATCH(7, "Transfer currency doesn't correspond to either account currencies.");
+        TRANSFER_CURRENCY_MISMATCH(7, "Transfer currency doesn't correspond to either account currencies."),
+        RATE_NOT_FOUND(8, "Rate not found for source and destination currencies");
 
         private final int code;
         private final String errorMessage;

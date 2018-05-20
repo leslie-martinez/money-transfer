@@ -14,7 +14,7 @@ class Generic implements Serializable {
     /**
      * Last Date and Time of update
      */
-    private Date lastUpdateDt;
+    private Date lastUpdatedDt;
 
 
     public Date getCreatedDt() {
@@ -25,11 +25,11 @@ class Generic implements Serializable {
         this.createdDt = createdDt;
     }
 
-    public Date getLastUpdateDt() {
-        return lastUpdateDt;
+    public Date getLastUpdatedDt() {
+        return lastUpdatedDt;
     }
 
-    void setLastUpdateDt(Date lastUpdateDt) {
-        this.lastUpdateDt = lastUpdateDt;
+    void setLastUpdatedDt(Date lastUpdatedDt) {
+        this.lastUpdatedDt = lastUpdatedDt;
     }
 }

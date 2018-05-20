@@ -40,6 +40,8 @@ public class Account extends Generic {
      * @param accountNo account number
      * @param balance account balance
      * @param currencyCode account currency code
+     * @param createdDt creation date time of transfer
+     * @param lastUpdateDt last update date time of transfer
      */
     public Account(int id, int accountOwnerId, long accountNo, BigDecimal balance, String currencyCode, Date createdDt, Date lastUpdateDt) {
         this.id = id;
@@ -48,7 +50,7 @@ public class Account extends Generic {
         this.currencyCode = currencyCode;
         this.accountOwnerId = accountOwnerId;
         this.setCreatedDt(createdDt);
-        this.setLastUpdateDt(lastUpdateDt);
+        this.setLastUpdatedDt(lastUpdateDt);
     }
 
     public int getId() {

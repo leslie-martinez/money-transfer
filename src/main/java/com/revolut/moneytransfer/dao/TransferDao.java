@@ -1,6 +1,7 @@
 package com.revolut.moneytransfer.dao;
 
 import com.revolut.moneytransfer.model.Account;
+import com.revolut.moneytransfer.model.Rate;
 import com.revolut.moneytransfer.model.Transfer;
 import org.apache.commons.dbutils.DbUtils;
 
@@ -24,16 +25,20 @@ public class TransferDao {
     private static final String USER = "sa";
     private static final String PASS = "sa";
 
-    private static final String SELECT_ALL = "SELECT * FROM TRANSFER";
-    private static final String INSERT_TRANSFER = "INSERT INTO TRANSFER values (TRANSFER_SEQ.nextVal, ?, ?, ?, ?, 'PENDING', null, SYSDATE, null);";
-    private static final String UPDATE_PROCESSED_TRANSFER = "UPDATE TRANSFER SET STATUS = 'PROCESSED', LAST_UPDATED_DT = SYSDATE WHERE ID = ?";
-    private static final String UPDATE_FAILED_TRANSFER = "UPDATE TRANSFER SET STATUS = 'FAILED', REMARKS = ?, LAST_UPDATED_DT = SYSDATE WHERE ID = ?";
-    private static final String SELECT_BY_TO_ACCOUNT_NO = "SELECT * FROM TRANSFER WHERE TO_ACCOUNT_NO = ?";
-    private static final String SELECT_BY_FROM_ACCOUNT_NO = "SELECT * FROM TRANSFER WHERE FROM_ACCOUNT_NO = ?";
+    private static final String SELECT_ALL = "SELECT * FROM TRANSFERS";
+    private static final String INSERT_TRANSFER = "INSERT INTO TRANSFERS values (TRANSFERS_SEQ.nextVal, ?, ?, ?, ?, ?, ?, ?, ?, ?, 'PENDING', SYSDATE, null);";
+    private static final String UPDATE_TRANSFER = "UPDATE TRANSFERS SET DEBITED_AMOUNT = ?, DEBITED_CURRENCY_CODE = ?, CREDITED_AMOUNT = ?, CREDITED_CURRENCY_CODE = ?, RATE = ?, STATUS = ?, LAST_UPDATED_DT = SYSDATE WHERE ID = ?";
+    private static final String SELECT_BY_TO_ACCOUNT_NO = "SELECT * FROM TRANSFERS WHERE TO_ACCOUNT_NO = ?";
+    private static final String SELECT_BY_FROM_ACCOUNT_NO = "SELECT * FROM TRANSFERS WHERE FROM_ACCOUNT_NO = ?";
 
     private static final AccountDao accountDao = new AccountDao();
+    private static final RateDao rateDao = new RateDao();
 
 
+    /**
+     * @return all transfers
+     * @throws Exception e
+     */
     public List<Transfer> getAllTransfers() throws Exception {
         List<Transfer> transferList = new ArrayList<>();
 
@@ -48,7 +53,7 @@ public class TransferDao {
                 throw new SQLException("SQL Exception while executing : " + SELECT_ALL);
 
             while (rs.next()) {
-                Transfer transfer = new Transfer(rs.getInt("ID"), rs.getLong("FROM_ACCOUNT_NO"), rs.getLong("TO_ACCOUNT_NO"), rs.getBigDecimal("AMOUNT"), rs.getString("CURRENCY_CODE"), rs.getString("STATUS"), rs.getString("REMARKS"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
+                Transfer transfer = new Transfer(rs.getInt("ID"), rs.getLong("FROM_ACCOUNT_NO"), rs.getLong("TO_ACCOUNT_NO"), rs.getBigDecimal("DEBITED_AMOUNT"), rs.getString("DEBITED_CURRENCY_CODE"), rs.getBigDecimal("TRANSFER_AMOUNT"), rs.getString("TRANSFER_CURRENCY_CODE"), rs.getBigDecimal("CREDITED_AMOUNT"), rs.getString("CREDITED_CURRENCY_CODE"), rs.getBigDecimal("RATE"), rs.getString("STATUS"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
                 transferList.add(transfer);
             }
             return transferList;
@@ -60,6 +65,12 @@ public class TransferDao {
         }
     }
 
+    /**
+     * @param accountNo   account no
+     * @param accountType TO or FROM account
+     * @return Transfers by account
+     * @throws Exception e
+     */
     public List<Transfer> getTransfersByAccountNo(Long accountNo, String accountType) throws Exception {
         log.info("getTransfersByAccountNo : " + accountNo);
         ResultSet rs = null;
@@ -79,7 +90,7 @@ public class TransferDao {
             // Execute a query
             rs = stmt.executeQuery();
             while (rs.next()) {
-                Transfer transfer = new Transfer(rs.getInt("ID"), rs.getLong("FROM_ACCOUNT_NO"), rs.getLong("TO_ACCOUNT_NO"), rs.getBigDecimal("AMOUNT"), rs.getString("CURRENCY_CODE"), rs.getString("STATUS"), rs.getString("REMARKS"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
+                Transfer transfer = new Transfer(rs.getInt("ID"), rs.getLong("FROM_ACCOUNT_NO"), rs.getLong("TO_ACCOUNT_NO"), rs.getBigDecimal("DEBITED_AMOUNT"), rs.getString("DEBITED_CURRENCY_CODE"), rs.getBigDecimal("TRANSFER_AMOUNT"), rs.getString("TRANSFER_CURRENCY_CODE"), rs.getBigDecimal("CREDITED_AMOUNT"), rs.getString("CREDITED_CURRENCY_CODE"), rs.getBigDecimal("RATE"), rs.getString("STATUS"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
                 transfersList.add(transfer);
             }
             return transfersList;
@@ -96,13 +107,13 @@ public class TransferDao {
     }
 
     /**
+     * Process transfer between two accounts
      * @param transfer transfer to be processed
      * @return Transfer.transferResponse
      * @throws Exception e
      */
     public Transfer.transferResponse processTransfer(Transfer transfer) throws Exception {
         log.info("@@@ processTransfer");
-        int response = 0;
         int transferId = 0;
         Connection conn = null;
         ResultSet rs;
@@ -121,8 +132,13 @@ public class TransferDao {
             insertStmt = conn.prepareStatement(INSERT_TRANSFER);
             insertStmt.setLong(1, transfer.getSourceAccountNo());
             insertStmt.setLong(2, transfer.getDestinationAccountNo());
-            insertStmt.setBigDecimal(3, transfer.getAmount());
-            insertStmt.setString(4, transfer.getCurrencyCode());
+            insertStmt.setBigDecimal(3, null);
+            insertStmt.setString(4, null);
+            insertStmt.setBigDecimal(5, transfer.getTransferAmount());
+            insertStmt.setString(6, transfer.getTransferCurrencyCode());
+            insertStmt.setBigDecimal(7, null);
+            insertStmt.setString(8, null);
+            insertStmt.setBigDecimal(9, null);
 
             //Execute Insert query
             log.info("@@@ before Execute insert");
@@ -142,28 +158,38 @@ public class TransferDao {
             Account toAccount = accountDao.lockAccountByNumber(transfer.getDestinationAccountNo());
 
             // validation method to call before any fund movement
-            Transfer.transferResponse validTransactionResponse = transactionValidations(transfer);
-            log.info("transactionValidations : " + validTransactionResponse.getErrorMessage());
+            transfer = transactionValidations(transfer);
+            log.info("transactionValidations : " + transfer.getResponse().getErrorMessage());
 
-            if (!validTransactionResponse.equals(Transfer.transferResponse.SUCCESS)) {
+            if (!transfer.getResponse().equals(Transfer.transferResponse.SUCCESS)) {
                 log.info("Transfer validation error -- Update transfer record to failed.");
-                updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
-                updateStmt.setInt(1, transferId);
-                updateStmt.setString(2, validTransactionResponse.getErrorMessage());
+                updateStmt = conn.prepareStatement(UPDATE_TRANSFER);
+                updateStmt.setBigDecimal(1, transfer.getDebitedAmount());
+                updateStmt.setString(2, transfer.getSourceCurrencyCode());
+                updateStmt.setBigDecimal(3, transfer.getCreditedAmount());
+                updateStmt.setString(4, transfer.getDestinationCurrencyCode());
+                updateStmt.setBigDecimal(5, transfer.getRate());
+                updateStmt.setString(6, transfer.getResponse().name());
+                updateStmt.setInt(7, transferId);
                 updateStmt.executeUpdate();
                 conn.commit();
-                return validTransactionResponse;
+                return transfer.getResponse();
             }
 
             log.info("Transfer validation success -- Processing transfer.");
 
-            Transfer.transferResponse transferFundResponse = accountDao.transferFund(fromAccount, toAccount, transfer.getAmount(), transfer.getCurrencyCode());
+            Transfer.transferResponse transferFundResponse = accountDao.transferFund(fromAccount, toAccount, transfer);
 
             if (!transferFundResponse.equals(Transfer.transferResponse.SUCCESS)) {
                 log.info("Transfer fund error -- Update transfer record to failed.");
-                updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
-                updateStmt.setInt(1, transferId);
-                updateStmt.setString(2, transferFundResponse.getErrorMessage());
+                updateStmt = conn.prepareStatement(UPDATE_TRANSFER);
+                updateStmt.setBigDecimal(1, transfer.getDebitedAmount());
+                updateStmt.setString(2, transfer.getSourceCurrencyCode());
+                updateStmt.setBigDecimal(3, transfer.getCreditedAmount());
+                updateStmt.setString(4, transfer.getDestinationCurrencyCode());
+                updateStmt.setBigDecimal(5, transfer.getRate());
+                updateStmt.setString(6, transferFundResponse.name());
+                updateStmt.setInt(7, transferId);
                 updateStmt.executeUpdate();
                 conn.commit();
                 return transferFundResponse;
@@ -171,37 +197,27 @@ public class TransferDao {
 
             log.info("Transfer fund success -- Update transfer record to success.");
 
-            updateStmt = conn.prepareStatement(UPDATE_PROCESSED_TRANSFER);
-            updateStmt.setInt(1, transferId);
+            updateStmt = conn.prepareStatement(UPDATE_TRANSFER);
+            updateStmt.setBigDecimal(1, transfer.getDebitedAmount());
+            updateStmt.setString(2, transfer.getSourceCurrencyCode());
+            updateStmt.setBigDecimal(3, transfer.getCreditedAmount());
+            updateStmt.setString(4, transfer.getDestinationCurrencyCode());
+            updateStmt.setBigDecimal(5, transfer.getRate());
+            updateStmt.setString(6, transferFundResponse.name());
+            updateStmt.setInt(7, transferId);
             updateStmt.executeUpdate();
             conn.commit();
-            return Transfer.transferResponse.SUCCESS;
+            return transferFundResponse;
         } catch(SQLException se) {
             log.severe("@@@ SQLException : " + se.getMessage());
             if (conn != null) {
-                //FIXME : In case of unexpected exception, rollback transfer fund and update transfer record as failed.
                 conn.rollback();
-                updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
-                if (updateStmt != null) {
-                    updateStmt.setInt(1, transferId);
-                    updateStmt.setString(2, se.getMessage());
-                    updateStmt.executeUpdate();
-                }
-                conn.commit();
             }
             throw new SQLException(se);
         } catch(Exception e) {
             log.severe("@@@ Exception : " + e.getMessage() + conn + updateStmt);
             if (conn != null) {
-                //FIXME : In case of unexpected exception, rollback transfer fund and update transfer record as failed.
                 conn.rollback();
-                updateStmt = conn.prepareStatement(UPDATE_FAILED_TRANSFER);
-                if (updateStmt != null) {
-                    updateStmt.setInt(1, transferId);
-                    updateStmt.setString(2, e.getMessage());
-                    updateStmt.executeUpdate();
-                }
-                conn.commit();
             }
             throw new Exception(e);
         }
@@ -214,28 +230,31 @@ public class TransferDao {
      * @return Transfer.transferResponse
      * @throws Exception e
      */
-    private Transfer.transferResponse transactionValidations(Transfer transfer) throws Exception {
+    private Transfer transactionValidations(Transfer transfer) throws Exception {
         log.info("transactionValidations");
         Account fromAccount = accountDao.getAccountByAccountNo(transfer.getSourceAccountNo());
         if (fromAccount == null) {
-            return Transfer.transferResponse.INVALID_FROM_ACC;
+            transfer.setResponse(Transfer.transferResponse.INVALID_FROM_ACC);
+            return transfer;
         }
         log.info("Valid Source Account.");
         Account toAccount = accountDao.getAccountByAccountNo(transfer.getDestinationAccountNo());
         if (toAccount == null) {
-            return Transfer.transferResponse.INVALID_TO_ACC;
+            transfer.setResponse(Transfer.transferResponse.INVALID_TO_ACC);
+            return transfer;
         }
         log.info("Valid Destination Account.");
 
         //Validating currency codes
-        String transferCurrencyCode = transfer.getCurrencyCode();
+        String transferCurrencyCode = transfer.getTransferCurrencyCode();
         try {
             Currency instance = Currency.getInstance(transferCurrencyCode);
             //noinspection ResultOfMethodCallIgnored
             instance.getCurrencyCode().equals(transferCurrencyCode);
         } catch (Exception e) {
             log.info("Invalid currency code : " + transferCurrencyCode);
-            return Transfer.transferResponse.INVALID_CURRENCY_TRANSFER;
+            transfer.setResponse(Transfer.transferResponse.INVALID_CURRENCY_TRANSFER);
+            return transfer;
         }
         log.info("Valid Transfer Currency.");
 
@@ -246,9 +265,11 @@ public class TransferDao {
             instance.getCurrencyCode().equals(fromCurrencyCode);
         } catch (Exception e) {
             log.info("Invalid currency code : " + fromCurrencyCode);
-            return Transfer.transferResponse.INVALID_CURRENCY_FROM_ACC;
+            transfer.setResponse(Transfer.transferResponse.INVALID_CURRENCY_FROM_ACC);
+            return transfer;
         }
         log.info("Valid Source Account Currency.");
+        transfer.setSourceCurrencyCode(fromCurrencyCode);
 
         String toCurrencyCode = toAccount.getCurrencyCode();
         try {
@@ -257,27 +278,63 @@ public class TransferDao {
             instance.getCurrencyCode().equals(toCurrencyCode);
         } catch (Exception e) {
             log.info("Invalid currency code : " + toCurrencyCode);
-            return Transfer.transferResponse.INVALID_CURRENCY_TO_ACC;
+            transfer.setResponse(Transfer.transferResponse.INVALID_CURRENCY_TO_ACC);
+            return transfer;
         }
         log.info("Valid Destination Account Currency.");
+        transfer.setDestinationCurrencyCode(toCurrencyCode);
 
+
+        //If the transfer currency doesn't match either accounts currencies : error
         if (!transferCurrencyCode.equalsIgnoreCase(fromCurrencyCode) && !transferCurrencyCode.equalsIgnoreCase(toCurrencyCode)) {
             log.info("Transfer currency doesn't correspond to either account currencies.");
-            return Transfer.transferResponse.TRANSFER_CURRENCY_MISMATCH;
+            transfer.setResponse(Transfer.transferResponse.TRANSFER_CURRENCY_MISMATCH);
+            return transfer;
         }
 
+        Rate rate;
+        if (fromCurrencyCode.equalsIgnoreCase(toCurrencyCode)) {
+            log.info("Source and Destination currencies are the same , rate = 1");
+            rate = new Rate();
+            rate.setRate(new BigDecimal(1).setScale(2, BigDecimal.ROUND_HALF_EVEN));
+        } else {
+            rate = rateDao.getRateBySourceAndDestCurrency(fromCurrencyCode, toCurrencyCode);
+        }
+        if (rate == null) {
+            log.info("Rate not found for the source and destination currencies");
+            transfer.setResponse(Transfer.transferResponse.RATE_NOT_FOUND);
+            return transfer;
+        }
+        log.info("Valid Rate : " + rate.getRate());
+        transfer.setRate(rate.getRate());
+        BigDecimal debitedAmount;
+        BigDecimal creditedAmount;
 
-        //TODO CONVERTER
-
+        if (transferCurrencyCode.equalsIgnoreCase(fromCurrencyCode)) {
+            debitedAmount = transfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN);
+        } else {
+            debitedAmount = transfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN).divide(rate.getRate(), 2, BigDecimal.ROUND_HALF_UP);
+        }
+        if (transferCurrencyCode.equalsIgnoreCase(toCurrencyCode)) {
+            creditedAmount = transfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN);
+        } else {
+            creditedAmount = transfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN).multiply(rate.getRate().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+        }
 
         //Validating sufficient fund
-        BigDecimal newBalance = fromAccount.getBalance().subtract(transfer.getAmount());
+        BigDecimal newBalance = fromAccount.getBalance().setScale(2, BigDecimal.ROUND_HALF_EVEN).subtract(debitedAmount.setScale(2, BigDecimal.ROUND_HALF_EVEN));
         //check account balance
-        if (newBalance.compareTo(new BigDecimal(0)) < 0) {
+        if (newBalance.compareTo(new BigDecimal(0).setScale(2, BigDecimal.ROUND_HALF_EVEN)) < 0) {
             log.info("Insufficient balance on account : " + fromAccount.getAccountNo());
-            return Transfer.transferResponse.INSUFFICIENT_FUND;
+            transfer.setResponse(Transfer.transferResponse.INSUFFICIENT_FUND);
+            return transfer;
         }
+        log.info("debitedAmount : " + debitedAmount);
+        transfer.setDebitedAmount(debitedAmount);
+        log.info("creditedAmount : " + creditedAmount);
+        transfer.setCreditedAmount(creditedAmount);
+        transfer.setResponse(Transfer.transferResponse.SUCCESS);
         log.info("All transfer validations passed.");
-        return Transfer.transferResponse.SUCCESS;
+        return transfer;
     }
 }

@@ -6,6 +6,7 @@ import com.revolut.moneytransfer.model.Transfer;
 import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
+import java.math.BigDecimal;
 import java.util.List;
 import java.util.logging.Logger;
 
@@ -108,31 +109,25 @@ public class TransferService {
     @Path("")
     public Response transferAmount(Transfer transfer) {
         log.info("REST : transferAmount");
-        log.info("transfer.getSourceAccountNo() : " + transfer.getSourceAccountNo());
-        log.info("transfer.getDestinationAccountNo() : " + transfer.getDestinationAccountNo());
-        log.info("transfer.getAmount() : " + transfer.getAmount());
-        log.info("transfer.getCurrencyCode() : " + transfer.getCurrencyCode());
-
-        if (transfer.getSourceAccountNo() == null) {
+        if (transfer == null)
+            return Response.serverError().entity("Transfer cannot be null.").build();
+        if (transfer.getSourceAccountNo() == null || transfer.getSourceAccountNo().compareTo(0L) == 0) {
             return Response.serverError().entity("Source account cannot be null.").build();
-        }
-        else if (transfer.getDestinationAccountNo() == null) {
+        } else if (transfer.getDestinationAccountNo() == null || transfer.getDestinationAccountNo().compareTo(0L) == 0) {
             return Response.serverError().entity("Destination account cannot be null.").build();
-        }
-        else if (transfer.getAmount() == null) {
+        } else if (transfer.getTransferAmount() == null || transfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN).equals(new BigDecimal(0).setScale(2, BigDecimal.ROUND_HALF_EVEN))) {
             return Response.serverError().entity("Amount to transfer cannot be null.").build();
-        }
-        else if (transfer.getCurrencyCode() == null) {
+        } else if (transfer.getTransferCurrencyCode() == null || transfer.getTransferCurrencyCode().isEmpty()) {
             return Response.serverError().entity("Currency cannot be null.").build();
         }
         Transfer.transferResponse response;
         try {
             response = h2Dao.getTransferDAO().processTransfer(transfer);
             if (response != null) {
-                if (response == Transfer.transferResponse.INVALID_FROM_ACC || response == Transfer.transferResponse.INVALID_TO_ACC) {
-                    return Response.status(Response.Status.NOT_FOUND).entity(response.getErrorMessage() + transfer.getSourceAccountNo()).build();
-                } else if (response == Transfer.transferResponse.INSUFFICIENT_FUND || response == Transfer.transferResponse.INVALID_CURRENCY_FROM_ACC || response == Transfer.transferResponse.INVALID_CURRENCY_TO_ACC) {
-                    return Response.status(Response.Status.BAD_REQUEST).entity(response.getErrorMessage() + transfer.getSourceAccountNo()).build();
+                if (response == Transfer.transferResponse.INVALID_FROM_ACC || response == Transfer.transferResponse.INVALID_TO_ACC || response == Transfer.transferResponse.RATE_NOT_FOUND) {
+                    return Response.status(Response.Status.NOT_FOUND).entity(response.getErrorMessage()).build();
+                } else if (response.getErrorMessage() != null) {
+                    return Response.status(Response.Status.BAD_REQUEST).entity(response.getErrorMessage()).build();
                 }
             }
         } catch (Exception e) {

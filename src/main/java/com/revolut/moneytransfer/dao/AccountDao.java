@@ -5,7 +5,6 @@ import com.revolut.moneytransfer.model.Transfer;
 import org.apache.commons.dbutils.DbUtils;
 
 import java.math.BigDecimal;
-import java.math.MathContext;
 import java.sql.*;
 import java.util.ArrayList;
 import java.util.List;
@@ -25,12 +24,12 @@ public class AccountDao {
     private static final String PASS = "sa";
 
     // SQL STATEMENTS
-    private static final String SELECT_ALL = "SELECT * FROM ACCOUNT";
-    private static final String SELECT_BY_ID =  "SELECT * FROM ACCOUNT WHERE ID = ? ";
-    private static final String SELECT_BY_ACCOUNT_NO =  "SELECT * FROM ACCOUNT WHERE ACCOUNT_NUMBER = ? ";
-    private static final String GET_BALANCE_BY_ACCOUNT_NO =  "SELECT BALANCE FROM ACCOUNT WHERE ACCOUNT_NUMBER = ? ";
-    private final static String LOCK_ACCOUNT_BY_NUMBER = "SELECT * FROM ACCOUNT WHERE ACCOUNT_NUMBER = ? FOR UPDATE";
-    private final static String UPDATE_ACCOUNT_BALANCE = "UPDATE ACCOUNT SET BALANCE = ? WHERE ACCOUNT_NUMBER = ?";
+    private static final String SELECT_ALL = "SELECT * FROM ACCOUNTS";
+    private static final String SELECT_BY_ID = "SELECT * FROM ACCOUNTS WHERE ID = ? ";
+    private static final String SELECT_BY_ACCOUNT_NO = "SELECT * FROM ACCOUNTS WHERE ACCOUNT_NUMBER = ? ";
+    private static final String GET_BALANCE_BY_ACCOUNT_NO = "SELECT BALANCE FROM ACCOUNTS WHERE ACCOUNT_NUMBER = ? ";
+    private final static String LOCK_ACCOUNT_BY_NUMBER = "SELECT * FROM ACCOUNTS WHERE ACCOUNT_NUMBER = ? FOR UPDATE";
+    private final static String UPDATE_ACCOUNT_BALANCE = "UPDATE ACCOUNTS SET BALANCE = ?, LAST_UPDATED_DT = SYSDATE WHERE ACCOUNT_NUMBER = ?";
 
 
     /**
@@ -51,7 +50,7 @@ public class AccountDao {
             if (rs == null)
                 throw new SQLException("SQL Exception while executing : " + SELECT_ALL);
             while (rs.next()) {
-                Account acc = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
+                Account acc = new Account(rs.getInt("ID"), rs.getInt("CUSTOMER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
                 accountList.add(acc);
             }
             return accountList;
@@ -84,7 +83,7 @@ public class AccountDao {
             // Execute a query
             rs = stmt.executeQuery();
             if (rs.next()) {
-                account = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
+                account = new Account(rs.getInt("ID"), rs.getInt("CUSTOMER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
             }
             return account;
         } catch(SQLException se) {
@@ -120,7 +119,7 @@ public class AccountDao {
             //Execute a query
             rs = stmt.executeQuery();
             if (rs.next()) {
-                account = new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
+                account = new Account(rs.getInt("ID"), rs.getInt("CUSTOMER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
             }
             return account;
         } catch(SQLException se) {
@@ -192,7 +191,7 @@ public class AccountDao {
             //Execute Lock query
             rs = lockStmt.executeQuery();
             if (rs.next()) {
-                return new Account(rs.getInt("ID"), rs.getInt("ACCOUNT_OWNER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
+                return new Account(rs.getInt("ID"), rs.getInt("CUSTOMER_ID"), rs.getLong("ACCOUNT_NUMBER"), rs.getBigDecimal("BALANCE"), rs.getString("CURRENCY_CODE"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
             }
             return null;
         } catch (Exception e) {
@@ -205,16 +204,15 @@ public class AccountDao {
 
     /**
      * Proceed with the fund transfer - to be called after verification and accounts lock for update
-     *
-     * @param fromAccount  source account
-     * @param toAccount    destination account
-     * @param amount       transaction amount
-     * @param currencyCode transaction currency code
+     * @param fromAccount source account
+     * @param toAccount destination account
+     * @param transfer  transfer
      * @return Transfer.transferResponse
      * @throws Exception e
      */
-    Transfer.transferResponse transferFund(Account fromAccount, Account toAccount, BigDecimal amount, String currencyCode) throws Exception {
-        log.info("transferFund from : " + fromAccount.getAccountNo() + " to : " + toAccount.getAccountNo() + " of amount : " + amount + currencyCode);
+    @SuppressWarnings("SameReturnValue")
+    Transfer.transferResponse transferFund(Account fromAccount, Account toAccount, Transfer transfer) throws Exception {
+        log.info("transferFund from : " + transfer.getSourceAccountNo() + " to : " + transfer.getDestinationAccountNo() + " of amount : " + transfer.getTransferAmount() + transfer.getTransferCurrencyCode());
         Connection conn = null;
         PreparedStatement updateStmt = null;
 
@@ -225,37 +223,17 @@ public class AccountDao {
             //set autocommit false to control the rollback in case of exception
             conn.setAutoCommit(false);
             updateStmt = conn.prepareStatement(UPDATE_ACCOUNT_BALANCE);
-
-            //If transfer currency != source currency : Converting currency for Source account
-            String fromCurrencyCode = fromAccount.getCurrencyCode();
-            BigDecimal amountToDeduct = amount;
-            if (!fromCurrencyCode.equalsIgnoreCase(currencyCode)) {
-                //TODO change currency rate by real calculation
-                BigDecimal sourceCurrencyRate = new BigDecimal(Math.random(), MathContext.DECIMAL64); // based on fromCurrencyCode to transfer currencyCode
-                log.info("sourceCurrencyRate : " + sourceCurrencyRate);
-                amountToDeduct = amount.multiply(sourceCurrencyRate);
-            }
-            BigDecimal sourceNewBalance = fromAccount.getBalance().subtract(amountToDeduct);
+            BigDecimal newSourceBalance = fromAccount.getBalance().setScale(2, BigDecimal.ROUND_HALF_EVEN).subtract(transfer.getDebitedAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+            BigDecimal newDestinationBalance = toAccount.getBalance().setScale(2, BigDecimal.ROUND_HALF_EVEN).add(transfer.getCreditedAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN));
 
             //Proceed with add update source account to batch
-            updateStmt.setBigDecimal(1, sourceNewBalance);
-            updateStmt.setLong(2, fromAccount.getAccountNo());
+            updateStmt.setBigDecimal(1, newSourceBalance);
+            updateStmt.setLong(2, transfer.getSourceAccountNo());
             updateStmt.addBatch();
 
-            //If transfer currency != destination currency : Converting currency for Destination account
-            String toCurrencyCode = toAccount.getCurrencyCode();
-            BigDecimal amountToCredit = amount;
-            if (!toCurrencyCode.equalsIgnoreCase(currencyCode)) {
-                //TODO change currency rate by real calculation
-                BigDecimal destinationCurrencyRate = new BigDecimal(Math.random(), MathContext.DECIMAL64);// based on transfer currencyCode to toCurrencyCode
-                log.info("destinationCurrencyRate : " + destinationCurrencyRate);
-                amountToCredit = amount.multiply(destinationCurrencyRate);
-            }
-            BigDecimal destinationNewBalance = toAccount.getBalance().add(amountToCredit);
-
             //Proceed with add update update destination account to batch
-            updateStmt.setBigDecimal(1, destinationNewBalance);
-            updateStmt.setLong(2, toAccount.getAccountNo());
+            updateStmt.setBigDecimal(1, newDestinationBalance);
+            updateStmt.setLong(2, transfer.getDestinationAccountNo());
             updateStmt.addBatch();
 
             //Execute batch update
@@ -264,7 +242,7 @@ public class AccountDao {
             //Commit DB transaction
             conn.commit();
         } catch (SQLException se) {
-            log.severe("SQL Exception while transferring fund from : " + fromAccount.getAccountNo() + " to : " + toAccount.getAccountNo() + " of amount : " + amount + currencyCode);
+            log.severe("SQL Exception while transferring fund from : " + transfer.getSourceAccountNo() + " to : " + transfer.getDestinationAccountNo() + " of amount : " + transfer.getTransferAmount() + transfer.getTransferCurrencyCode());
             if (conn != null)
                 conn.rollback();
             throw new SQLException(se);
