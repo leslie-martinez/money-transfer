@@ -40,7 +40,7 @@ You can now test the endpoints described below:
 | /customers/{accountNo}      | GET      |                  |   http://localhost:8080/customers/1234         | `200 OK`, `404 NOT FOUND`              |
 | /rates                  | GET      |                  |   http://localhost:8080/rates         | `200 OK`, `404 NOT FOUND`              |
 | /rates/effective                  | GET      |                  |   http://localhost:8080/rates/effective         | `200 OK`, `404 NOT FOUND`              |
-| /rates/query?sourceCurrency={sourceCurrency}&destinationCurrency={destinationCurrency}| GET      |    |   http://localhost:8080/rates/query/sourceCurrency=EUR&destinationCurrency=SGD        | `200 OK`, `404 NOT FOUND`              |
+| /rates/query?sourceCurrency={sourceCurrency}&destinationCurrency={destinationCurrency}| GET      |    |   http://localhost:8080/rates/query?sourceCurrency=EUR&destinationCurrency=SGD        | `200 OK`, `404 NOT FOUND`              |
 
 
 ## Real Life missing checks and features
