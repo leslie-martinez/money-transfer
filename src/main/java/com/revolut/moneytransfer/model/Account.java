@@ -93,4 +93,27 @@ public class Account extends Generic {
         this.accountOwnerId = accountOwnerId;
     }
 
+
+    public enum accountResponse {
+        SUCCESS("SUCCESS", null),
+        ACCOUNT_NOT_FOUND("ACCOUNT_NOT_FOUND", "Account not found."),
+        BALANCE_NOT_ZERO("BALANCE_NOT_ZERO", "Account balance not zero.");
+
+        private final String code;
+        private final String errorMessage;
+
+        accountResponse(String code, String errorMessage) {
+            this.code = code;
+            this.errorMessage = errorMessage;
+        }
+
+        public String getCode() {
+            return code;
+        }
+
+        public String getErrorMessage() {
+            return errorMessage;
+        }
+    }
+
 }

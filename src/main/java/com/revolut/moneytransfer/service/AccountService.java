@@ -3,10 +3,7 @@ package com.revolut.moneytransfer.service;
 import com.revolut.moneytransfer.dao.H2Dao;
 import com.revolut.moneytransfer.model.Account;
 
-import javax.ws.rs.GET;
-import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.Produces;
+import javax.ws.rs.*;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import java.math.BigDecimal;
@@ -84,7 +81,7 @@ public class AccountService {
     public Response getAccountBalance(@PathParam("accountNo") Long accountNo) throws Exception {
         log.info("REST : getAccountBalance");
         if(accountNo == null){
-            return Response.serverError().entity("accountId cannot be null.").build();
+            return Response.serverError().entity("accountNo cannot be null.").build();
         }
         BigDecimal balance;
         try {
@@ -97,6 +94,31 @@ public class AccountService {
             throw new Exception(e);
         }
         return Response.status(Response.Status.OK).entity(balance).build();
+    }
+
+    /**
+     * Delete account by account number (will only delete if balance is zero)
+     *
+     * @param accountNo account number to delete
+     * @return Response 204, 400, 404
+     * @throws Exception e
+     */
+    @DELETE
+    @Path("/{accountNo}")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response deleteAccount(@PathParam("accountNo") Long accountNo) throws Exception {
+        log.info("REST : deleteAccount");
+        if (accountNo == null) {
+            return Response.serverError().entity("accountNo cannot be null.").build();
+        }
+        Account.accountResponse response = h2Dao.getAccountDAO().deleteAccount(accountNo);
+        if (response.equals(Account.accountResponse.ACCOUNT_NOT_FOUND)) {
+            return Response.status(Response.Status.NOT_FOUND).entity("No account found, accountNo : " + accountNo).build();
+        } else if (response.equals(Account.accountResponse.BALANCE_NOT_ZERO)) {
+            return Response.status(Response.Status.BAD_REQUEST).entity(response.getErrorMessage()).build();
+        }
+
+        return Response.status(Response.Status.NO_CONTENT).build();
     }
 
 }

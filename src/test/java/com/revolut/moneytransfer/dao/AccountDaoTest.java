@@ -136,4 +136,40 @@ public class AccountDaoTest {
         }
         assertEquals(Transfer.transferResponse.SUCCESS, response);
     }
+
+    @Test
+    public void deleteValidAccount() {
+        Account.accountResponse response = null;
+        try {
+            response = accountDAO.deleteAccount(700L);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        assertNotNull(response);
+        assertEquals(Account.accountResponse.SUCCESS, response);
+    }
+
+    @Test
+    public void deleteInvalidAccount() {
+        Account.accountResponse response = null;
+        try {
+            response = accountDAO.deleteAccount(100L);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        assertNotNull(response);
+        assertEquals(Account.accountResponse.ACCOUNT_NOT_FOUND, response);
+    }
+
+    @Test
+    public void deleteInvalidBalanceAccount() {
+        Account.accountResponse response = null;
+        try {
+            response = accountDAO.deleteAccount(600L);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        assertNotNull(response);
+        assertEquals(Account.accountResponse.BALANCE_NOT_ZERO, response);
+    }
 }

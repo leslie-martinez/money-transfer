@@ -30,6 +30,7 @@ public class AccountDao {
     private static final String GET_BALANCE_BY_ACCOUNT_NO = "SELECT BALANCE FROM ACCOUNTS WHERE ACCOUNT_NUMBER = ? ";
     private final static String LOCK_ACCOUNT_BY_NUMBER = "SELECT * FROM ACCOUNTS WHERE ACCOUNT_NUMBER = ? FOR UPDATE";
     private final static String UPDATE_ACCOUNT_BALANCE = "UPDATE ACCOUNTS SET BALANCE = ?, LAST_UPDATED_DT = SYSDATE WHERE ACCOUNT_NUMBER = ?";
+    private final static String DELETE_ACCOUNT = "DELETE ACCOUNTS WHERE ACCOUNT_NUMBER = ?";
 
 
     /**
@@ -255,5 +256,51 @@ public class AccountDao {
             DbUtils.closeQuietly(updateStmt);
         }
         return Transfer.transferResponse.SUCCESS;
+    }
+
+    /**
+     * Delete account by account number (will only delete if balance is zero)
+     *
+     * @param accountNo account number to delete
+     * @return Account.accountResponse
+     * @throws Exception e
+     */
+    public Account.accountResponse deleteAccount(Long accountNo) throws Exception {
+        log.info("deleteAccount : " + accountNo);
+        Connection conn = null;
+        PreparedStatement updateStmt = null;
+
+        //Load Driver
+        Class.forName(JDBC_DRIVER);
+        try {
+            Account account = lockAccountByNumber(accountNo);
+            if (account == null) {
+                return Account.accountResponse.ACCOUNT_NOT_FOUND;
+            }
+            if (!account.getBalance().setScale(2, BigDecimal.ROUND_HALF_EVEN).equals(new BigDecimal(0).setScale(2, BigDecimal.ROUND_HALF_EVEN))) {
+                return Account.accountResponse.BALANCE_NOT_ZERO;
+            }
+
+            conn = DriverManager.getConnection(DB_URL, USER, PASS);
+            //set autocommit false to control the rollback in case of exception
+            conn.setAutoCommit(false);
+
+            updateStmt = conn.prepareStatement(DELETE_ACCOUNT);
+            updateStmt.setLong(1, accountNo);
+
+        } catch (SQLException se) {
+            log.severe("SQL Exception while deleting account : " + accountNo);
+            if (conn != null)
+                conn.rollback();
+            throw new SQLException(se);
+        } catch (Exception e) {
+            if (conn != null)
+                conn.rollback();
+            throw new Exception(e);
+        } finally {
+            DbUtils.closeQuietly(conn);
+            DbUtils.closeQuietly(updateStmt);
+        }
+        return Account.accountResponse.SUCCESS;
     }
 }
