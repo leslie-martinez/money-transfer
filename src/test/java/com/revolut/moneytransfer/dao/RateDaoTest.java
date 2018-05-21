@@ -4,6 +4,8 @@ import com.revolut.moneytransfer.model.Rate;
 import org.junit.Before;
 import org.junit.Test;
 
+import java.math.BigDecimal;
+import java.sql.Date;
 import java.util.List;
 import java.util.Objects;
 
@@ -62,5 +64,34 @@ public class RateDaoTest {
             e.printStackTrace();
         }
         assertNull(rate);
+    }
+
+    @Test
+    public void updateCurrencyRate() {
+        Rate rate = new Rate();
+        rate.setRate(new BigDecimal(2.34));
+        rate.setEffectiveDt(new Date(1L));
+        Rate newRate = null;
+        try {
+            newRate = rateDao.updateCurrencyRate(1L, rate);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        assertNotNull(newRate);
+        assertEquals(new BigDecimal(2.34).setScale(2, BigDecimal.ROUND_HALF_EVEN), newRate.getRate().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+    }
+
+    @Test
+    public void updateInvalidCurrencyRate() {
+        Rate rate = new Rate();
+        Rate newRate = null;
+        rate.setRate(new BigDecimal(2.34));
+        rate.setEffectiveDt(new Date(1L));
+        try {
+            newRate = rateDao.updateCurrencyRate(100L, rate);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+        assertNull(newRate);
     }
 }

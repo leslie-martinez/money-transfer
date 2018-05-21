@@ -24,8 +24,10 @@ public class RateDao {
     // SQL STATEMENTS
     private static final String SELECT_ALL = "SELECT * FROM RATES";
     private static final String SELECT_ALL_EFFECTIVE = "SELECT * FROM RATES WHERE ? >= EFFECTIVE_DT";
+    private static final String SELECT_RATE_BY_ID = "SELECT * FROM RATES WHERE ID = ?";
     private static final String SELECT_BY_ID = "SELECT * FROM RATES WHERE ID = ? ";
     private static final String SELECT_BY_SOURCE_DEST_CURRENCY = "SELECT * FROM RATES WHERE SOURCE_CURRENCY_CODE = ? AND DESTINATION_CURRENCY_CODE = ? AND ? >= EFFECTIVE_DT ORDER BY EFFECTIVE_DT DESC";
+    private static final String UPDATE_RATE_BY_ID = "UPDATE RATES SET RATE = ?, LAST_UPDATED_DT = SYSDATE, EFFECTIVE_DT = ? WHERE ID = ? ";
 
     /**
      * Get all rates list
@@ -135,5 +137,50 @@ public class RateDao {
             // finally block used to close remaining resources
             // end finally try
         }
+    }
+
+    /**
+     * Update currency rate
+     *
+     * @param rateId rate uid
+     * @param rate   rate object
+     * @return updated rate object
+     * @throws Exception e
+     */
+    public Rate updateCurrencyRate(Long rateId, Rate rate) throws Exception {
+        ResultSet rs;
+
+        //Load Driver
+        Class.forName(JDBC_DRIVER);
+
+        // Try with resource to ensure resources are closed on exit
+        try (Connection conn = DriverManager.getConnection(DB_URL, USER, PASS);
+             PreparedStatement stmt = conn.prepareStatement(UPDATE_RATE_BY_ID)) {
+            conn.setAutoCommit(false);
+            stmt.setBigDecimal(1, rate.getRate());
+            stmt.setDate(2, rate.getEffectiveDt());
+            stmt.setLong(3, rateId);
+            int update = stmt.executeUpdate();
+            log.info("@@@ " + update + " rate updated.");
+            if (update != 1) {
+                conn.rollback();
+                throw new Exception("Update rate failed.");
+            }
+            conn.commit();
+            PreparedStatement selectStmt = conn.prepareStatement(SELECT_BY_ID);
+            selectStmt.setLong(1, rateId);
+            rs = selectStmt.executeQuery();
+            if (rs == null)
+                throw new SQLException("SQL Exception while executing : " + UPDATE_RATE_BY_ID);
+            if (rs.next()) {
+                rate = new Rate(rs.getInt("ID"), rs.getString("SOURCE_CURRENCY_CODE"), rs.getString("DESTINATION_CURRENCY_CODE"), rs.getBigDecimal("RATE"), rs.getDate("EFFECTIVE_DT"), rs.getDate("CREATED_DT"), rs.getDate("LAST_UPDATED_DT"));
+            }
+        } catch (SQLException se) {
+            log.severe("SQL Exception while executing : " + UPDATE_RATE_BY_ID);
+            throw new SQLException(se);
+        } catch (Exception e) {
+            throw new Exception(e);
+        }
+        return rate;
     }
 }
