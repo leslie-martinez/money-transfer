@@ -56,7 +56,6 @@ public class TestService {
             server.setHandler(context);
             ServletHolder servletHolder = context.addServlet(ServletContainer.class, "/*");
             servletHolder.setInitParameter("jersey.config.server.provider.classnames",
-                    CustomerService.class.getCanonicalName() + "," +
                             AccountService.class.getCanonicalName() + "," +
                             ServiceExceptionMapper.class.getCanonicalName() + "," +
                             RateService.class.getCanonicalName() + "," +

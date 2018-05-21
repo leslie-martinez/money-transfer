@@ -20,7 +20,6 @@ public class H2Dao {
     static final private String USER = "sa";
     static final private String PASS = "sa";
 
-    private final CustomerDao customerDao = new CustomerDao();
     private final AccountDao accountDao = new AccountDao();
     private final TransferDao transferDao = new TransferDao();
     private final RateDao rateDao = new RateDao();
@@ -37,10 +36,6 @@ public class H2Dao {
         log.info("Connexion to H2 database");
         return DriverManager.getConnection(DB_URL, USER, PASS);
 
-    }
-
-    public CustomerDao getCustomerDao() {
-        return customerDao;
     }
 
     public AccountDao getAccountDAO() {

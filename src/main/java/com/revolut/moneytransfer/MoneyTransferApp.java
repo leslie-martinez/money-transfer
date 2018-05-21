@@ -1,7 +1,10 @@
 package com.revolut.moneytransfer;
 
 import com.revolut.moneytransfer.dao.H2Dao;
-import com.revolut.moneytransfer.service.*;
+import com.revolut.moneytransfer.service.AccountService;
+import com.revolut.moneytransfer.service.RateService;
+import com.revolut.moneytransfer.service.ServiceExceptionMapper;
+import com.revolut.moneytransfer.service.TransferService;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
@@ -45,8 +48,7 @@ class MoneyTransferApp
         server.setHandler(context);
         ServletHolder servletHolder = context.addServlet(ServletContainer.class, "/*");
         servletHolder.setInitParameter("jersey.config.server.provider.classnames",
-                CustomerService.class.getCanonicalName() + ","
-                        + AccountService.class.getCanonicalName() + ","
+                AccountService.class.getCanonicalName() + ","
                         + TransferService.class.getCanonicalName() + ","
                         + ServiceExceptionMapper.class.getCanonicalName() + ","
                         + RateService.class.getCanonicalName());
