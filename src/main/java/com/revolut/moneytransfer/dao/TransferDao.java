@@ -109,10 +109,10 @@ public class TransferDao {
     /**
      * Process transfer between two accounts
      * @param transfer transfer to be processed
-     * @return Transfer.transferResponse
+     * @return created Transfer entity
      * @throws Exception e
      */
-    public Transfer.transferResponse processTransfer(Transfer transfer) throws Exception {
+    public Transfer processTransfer(Transfer transfer) throws Exception {
         log.info("@@@ processTransfer");
         int transferId = 0;
         Connection conn = null;
@@ -152,6 +152,7 @@ public class TransferDao {
                 transferId = rs.getInt(1);
             log.info("Transfer successfully inserted in PENDING status. ID : " + transferId);
             conn.commit();
+            transfer.setId(transferId);
 
             //Lock both accounts until transaction completed
             Account fromAccount = accountDao.lockAccountByNumber(transfer.getSourceAccountNo());
@@ -170,16 +171,16 @@ public class TransferDao {
                 updateStmt.setString(4, transfer.getDestinationCurrencyCode());
                 updateStmt.setBigDecimal(5, transfer.getRate());
                 updateStmt.setString(6, transfer.getResponse().name());
-                updateStmt.setInt(7, transferId);
+                updateStmt.setInt(7, transfer.getId());
                 updateStmt.executeUpdate();
                 conn.commit();
-                return transfer.getResponse();
+                return transfer;
             }
 
             log.info("Transfer validation success -- Processing transfer.");
 
             Transfer.transferResponse transferFundResponse = accountDao.transferFund(fromAccount, toAccount, transfer);
-
+            transfer.setResponse(transferFundResponse);
             if (!transferFundResponse.equals(Transfer.transferResponse.SUCCESS)) {
                 log.info("Transfer fund error -- Update transfer record to failed.");
                 updateStmt = conn.prepareStatement(UPDATE_TRANSFER);
@@ -189,10 +190,10 @@ public class TransferDao {
                 updateStmt.setString(4, transfer.getDestinationCurrencyCode());
                 updateStmt.setBigDecimal(5, transfer.getRate());
                 updateStmt.setString(6, transferFundResponse.name());
-                updateStmt.setInt(7, transferId);
+                updateStmt.setInt(7, transfer.getId());
                 updateStmt.executeUpdate();
                 conn.commit();
-                return transferFundResponse;
+                return transfer;
             }
 
             log.info("Transfer fund success -- Update transfer record to success.");
@@ -207,7 +208,7 @@ public class TransferDao {
             updateStmt.setInt(7, transferId);
             updateStmt.executeUpdate();
             conn.commit();
-            return transferFundResponse;
+            return transfer;
         } catch(SQLException se) {
             log.severe("@@@ SQLException : " + se.getMessage());
             if (conn != null) {

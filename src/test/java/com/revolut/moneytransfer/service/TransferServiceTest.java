@@ -11,8 +11,7 @@ import org.junit.Test;
 import java.math.BigDecimal;
 import java.net.URI;
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
+import static org.junit.Assert.*;
 
 public class TransferServiceTest extends TestService {
 
@@ -75,6 +74,12 @@ public class TransferServiceTest extends TestService {
         HttpResponse response = client.execute(request);
         int statusCode = response.getStatusLine().getStatusCode();
         assertEquals(201, statusCode);
+
+        String json = EntityUtils.toString(response.getEntity());
+        transfer = mapper.readValue(json, Transfer.class);
+        assertNotNull(transfer);
+        assertEquals(new BigDecimal(10).setScale(2, BigDecimal.ROUND_HALF_EVEN), transfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+        assertEquals(new BigDecimal(1.33).setScale(2, BigDecimal.ROUND_HALF_EVEN), transfer.getRate().setScale(2, BigDecimal.ROUND_HALF_EVEN));
     }
 
     @Test

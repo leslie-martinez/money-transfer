@@ -73,16 +73,13 @@ public class TransferService {
      * Service returning all transfers fro a specific account
      *
      * @param accountNo Account Number
-     * @param startDt   query date range startDate
-     * @param endDt     query date range endDate
-     * @param format    format of dates passed
      * @return List of transfers
      * @throws Exception e
      */
     @GET
     @Path("/from/{accountNo}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getTransfersByFromAccountNo(@PathParam("accountNo") Long accountNo, @QueryParam("startDt") String startDt, @QueryParam("endDt") String endDt, @QueryParam("format") String format) throws Exception {
+    public Response getTransfersByFromAccountNo(@PathParam("accountNo") Long accountNo) throws Exception {
         log.info("REST : getTransferByAccountNo");
         if (accountNo == null) {
             return Response.serverError().entity("accountNo cannot be null.").build();
@@ -120,20 +117,17 @@ public class TransferService {
         } else if (transfer.getTransferCurrencyCode() == null || transfer.getTransferCurrencyCode().isEmpty()) {
             return Response.serverError().entity("Currency cannot be null.").build();
         }
-        Transfer.transferResponse response;
         try {
-            response = h2Dao.getTransferDAO().processTransfer(transfer);
-            if (response != null) {
-                if (response == Transfer.transferResponse.INVALID_FROM_ACC || response == Transfer.transferResponse.INVALID_TO_ACC || response == Transfer.transferResponse.RATE_NOT_FOUND) {
-                    return Response.status(Response.Status.NOT_FOUND).entity(response.getErrorMessage()).build();
-                } else if (response.getErrorMessage() != null) {
-                    return Response.status(Response.Status.BAD_REQUEST).entity(response.getErrorMessage()).build();
-                }
+            transfer = h2Dao.getTransferDAO().processTransfer(transfer);
+            if (transfer.getResponse() == Transfer.transferResponse.INVALID_FROM_ACC || transfer.getResponse() == Transfer.transferResponse.INVALID_TO_ACC || transfer.getResponse() == Transfer.transferResponse.RATE_NOT_FOUND) {
+                return Response.status(Response.Status.NOT_FOUND).entity(transfer.getResponse().getErrorMessage()).build();
+            } else if (transfer.getResponse().getErrorMessage() != null) {
+                return Response.status(Response.Status.BAD_REQUEST).entity(transfer.getResponse().getErrorMessage()).build();
             }
         } catch (Exception e) {
             log.severe("Error while getting transfer : " + e.getMessage());
             return Response.serverError().entity("Error while getting transfer : " + e.getMessage()).build();
         }
-        return Response.status(Response.Status.CREATED).build();
+        return Response.status(Response.Status.CREATED).entity(transfer).build();
     }
 }

@@ -87,8 +87,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "23456789012";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(200), "EUR");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.SUCCESS, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.SUCCESS, transfer.getResponse());
     }
 
     @Test
@@ -100,8 +100,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "23456789012";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(200), "EUR");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.INVALID_FROM_ACC, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.INVALID_FROM_ACC, transfer.getResponse());
     }
 
     @Test
@@ -113,8 +113,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "234567890126";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(200), "EUR");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.INVALID_TO_ACC, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.INVALID_TO_ACC, transfer.getResponse());
     }
 
     @Test
@@ -126,8 +126,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "23456789012";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(100000), "EUR");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.INSUFFICIENT_FUND, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.INSUFFICIENT_FUND, transfer.getResponse());
     }
 
     @Test
@@ -139,8 +139,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "23456789012";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(100), "aaa");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.INVALID_CURRENCY_TRANSFER, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.INVALID_CURRENCY_TRANSFER, transfer.getResponse());
     }
 
     @Test
@@ -152,8 +152,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "23456789012";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(100), "CHF");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.TRANSFER_CURRENCY_MISMATCH, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.TRANSFER_CURRENCY_MISMATCH, transfer.getResponse());
     }
 
     @Test
@@ -165,8 +165,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "23456789012";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(100), "USD");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.RATE_NOT_FOUND, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.RATE_NOT_FOUND, transfer.getResponse());
     }
 
     @Test
@@ -178,8 +178,8 @@ public class TransferDaoTest {
         String toAccountNoStr = "23456789012";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(100), "USD");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.INVALID_CURRENCY_FROM_ACC, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.INVALID_CURRENCY_FROM_ACC, transfer.getResponse());
     }
 
     @Test
@@ -191,7 +191,7 @@ public class TransferDaoTest {
         String toAccountNoStr = "900";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         Transfer transfer = new Transfer(fromAccountNo, toAccountNo, new BigDecimal(100000), "EUR");
-        Transfer.transferResponse response = transferDao.processTransfer(transfer);
-        assertEquals(Transfer.transferResponse.INVALID_CURRENCY_TO_ACC, response);
+        transfer = transferDao.processTransfer(transfer);
+        assertEquals(Transfer.transferResponse.INVALID_CURRENCY_TO_ACC, transfer.getResponse());
     }
 }
