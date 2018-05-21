@@ -35,7 +35,7 @@ public class RateService {
                 return Response.status(Response.Status.NOT_FOUND).entity("No rate found.").build();
             }
         } catch (Exception e) {
-            log.severe("Error while getting rates.");
+            log.severe(e.getMessage());
             return Response.serverError().entity("Getting all rates failed.").build();
         }
         return Response.status(Response.Status.OK).entity(rates).build();
@@ -58,7 +58,7 @@ public class RateService {
                 return Response.status(Response.Status.NOT_FOUND).entity("No rate found.").build();
             }
         } catch (Exception e) {
-            log.severe("Error while getting rates.");
+            log.severe(e.getMessage());
             return Response.serverError().entity("Getting effective rates failed.").build();
         }
         return Response.status(Response.Status.OK).entity(rates).build();
@@ -89,7 +89,7 @@ public class RateService {
                 return Response.status(Response.Status.NOT_FOUND).entity("No rate found, for " + sourceCurrency + " to " + destinationCurrency).build();
             }
         } catch (Exception e) {
-            log.severe("Error while getting rate.");
+            log.severe(e.getMessage());
             return Response.serverError().entity("Getting rate by source and destination currency failed.").build();
         }
         return Response.status(Response.Status.OK).entity(rate).build();
@@ -125,7 +125,7 @@ public class RateService {
                 return Response.status(Response.Status.NOT_FOUND).entity("No rate found, for id : " + rateId).build();
             }
         } catch (Exception e) {
-            log.severe("Error while updating rate. Id : " + rateId);
+            log.severe(e.getMessage());
             return Response.serverError().entity("Update rate failed.").build();
         }
         return Response.status(Response.Status.OK).entity(newRate).build();

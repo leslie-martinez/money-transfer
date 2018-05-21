@@ -19,12 +19,11 @@ public class TransferService {
     /**
      * Method returning all transfers available
      * @return All transfers
-     * @throws Exception Error while getting transfers
      */
     @GET
     @Path("")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getTransfers() throws Exception {
+    public Response getTransfers() {
         log.info("REST : getTransfers");
         List<Transfer> transfers;
         try {
@@ -33,66 +32,48 @@ public class TransferService {
                 return Response.status(Response.Status.NO_CONTENT).entity("No transfer found.").build();
             }
         } catch (Exception e){
-            log.severe("Error while getting transfers.");
-            throw new Exception(e);
+            log.severe(e.getMessage());
+            return Response.serverError().entity("SError while getting transfers.").build();
         }
         return Response.status(Response.Status.OK).entity(transfers).build();
     }
 
     /**
-     * Service returning all transfers fro a specific account
-     * @param accountNo Account Number
-     * @param startDt query date range startDate
-     * @param endDt query date range endDate
-     * @param format format of dates passed
-     * @return List of transfers
-     * @throws Exception e
-     */
-    @GET
-    @Path("/to/{accountNo}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getTransfersByToAccountNo(@PathParam("accountNo") Long accountNo, @QueryParam("startDt") String startDt, @QueryParam("endDt") String endDt, @QueryParam("format") String format) throws Exception {
-        log.info("REST : getTransferByAccountNo");
-        if (accountNo == null) {
-            return Response.serverError().entity("accountNo cannot be null.").build();
-        }
-        List<Transfer> transfers;
-        try {
-            transfers = h2Dao.getTransferDAO().getTransfersByAccountNo(accountNo, "TO");
-            if (transfers == null) {
-                return Response.status(Response.Status.NO_CONTENT).entity("No transfer found for account : " + accountNo).build();
-            }
-        } catch (Exception e) {
-            log.severe("Error while getting transfer.");
-            throw new Exception(e);
-        }
-        return Response.status(Response.Status.OK).entity(transfers).build();
-    }
-
-    /**
-     * Service returning all transfers fro a specific account
+     * Service returning all transfers for a specific account (to or from)
      *
-     * @param accountNo Account Number
+     * @param sourceAccountNo Source Account Number
+     * @param destinationAccountNo Destination Account Number
      * @return List of transfers
-     * @throws Exception e
      */
     @GET
-    @Path("/from/{accountNo}")
+    @Path("/query")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getTransfersByFromAccountNo(@PathParam("accountNo") Long accountNo) throws Exception {
+    public Response getTransfersByAccountNo(@QueryParam("from") Long sourceAccountNo, @QueryParam("to") Long destinationAccountNo) {
         log.info("REST : getTransferByAccountNo");
-        if (accountNo == null) {
-            return Response.serverError().entity("accountNo cannot be null.").build();
+        if (sourceAccountNo == null && destinationAccountNo == null) {
+            return Response.serverError().entity("Source and Destination account numbers cannot be null.").build();
+        }
+        if (sourceAccountNo != null && destinationAccountNo != null) {
+            return Response.serverError().entity("Source and Destination account numbers cannot be passed at the same time.").build();
+        }
+        String mode = null;
+        Long accountNo = null;
+        if (sourceAccountNo != null) {
+            accountNo = sourceAccountNo;
+            mode = "FROM";
+        } else if (destinationAccountNo != null) {
+            accountNo = destinationAccountNo;
+            mode = "TO";
         }
         List<Transfer> transfers;
         try {
-            transfers = h2Dao.getTransferDAO().getTransfersByAccountNo(accountNo, "FROM");
+            transfers = h2Dao.getTransferDAO().getTransfersByAccountNo(accountNo, mode);
             if (transfers == null) {
                 return Response.status(Response.Status.NO_CONTENT).entity("No transfer found for account : " + accountNo).build();
             }
         } catch (Exception e) {
-            log.severe("Error while getting transfer.");
-            throw new Exception(e);
+            log.severe(e.getMessage());
+            return Response.serverError().entity("Error while getting transfer.").build();
         }
         return Response.status(Response.Status.OK).entity(transfers).build();
     }
@@ -125,8 +106,8 @@ public class TransferService {
                 return Response.status(Response.Status.BAD_REQUEST).entity(transfer.getResponse().getErrorMessage()).build();
             }
         } catch (Exception e) {
-            log.severe("Error while getting transfer : " + e.getMessage());
-            return Response.serverError().entity("Error while getting transfer : " + e.getMessage()).build();
+            log.severe("Error while processing transfer : " + e.getMessage());
+            return Response.serverError().entity("Error while processing transfer.").build();
         }
         return Response.status(Response.Status.CREATED).entity(transfer).build();
     }

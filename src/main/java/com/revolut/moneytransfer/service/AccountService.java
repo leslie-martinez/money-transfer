@@ -22,12 +22,11 @@ public class AccountService {
     /**
      * Method returning all accounts available
      * @return All accounts
-     * @throws Exception Error while getting accounts
      */
     @GET
     @Path("")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getAccounts() throws Exception {
+    public Response getAccounts() {
         log.info("REST : getAllAccounts");
         List<Account> accounts;
         try {
@@ -36,8 +35,8 @@ public class AccountService {
                  return Response.status(Response.Status.NOT_FOUND).entity("No account found.").build();
              }
         } catch (Exception e){
-            log.severe("Error while getting accounts.");
-            throw new Exception(e);
+            log.severe(e.getMessage());
+            return Response.serverError().entity("Error while getting accounts.").build();
         }
         return Response.status(Response.Status.OK).entity(accounts).build();
     }
@@ -46,12 +45,11 @@ public class AccountService {
      * Service returning the Account object
      * @param accountNo Account Number
      * @return Account
-     * @throws Exception e
      */
     @GET
     @Path("/{accountNo}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getAccountByAccountNo(@PathParam("accountNo") Long accountNo) throws Exception {
+    public Response getAccountByAccountNo(@PathParam("accountNo") Long accountNo) {
         log.info("REST : getAccountByAccountNo");
         if(accountNo == null){
             return Response.serverError().entity("accountId cannot be null.").build();
@@ -63,8 +61,8 @@ public class AccountService {
                 return Response.status(Response.Status.NOT_FOUND).entity("No account found, accountNo : " + accountNo).build();
             }
         } catch (Exception e){
-            log.severe("Error while getting account.");
-            throw new Exception(e);
+            log.severe(e.getMessage());
+            return Response.serverError().entity("Error while getting account.").build();
         }
         return Response.status(Response.Status.OK).entity(account).build();
     }
@@ -73,12 +71,11 @@ public class AccountService {
      * Service returning the balance available on the account
      * @param accountNo Account Number
      * @return Account
-     * @throws Exception e
      */
     @GET
     @Path("/{accountNo}/balance")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response getAccountBalance(@PathParam("accountNo") Long accountNo) throws Exception {
+    public Response getAccountBalance(@PathParam("accountNo") Long accountNo) {
         log.info("REST : getAccountBalance");
         if(accountNo == null){
             return Response.serverError().entity("accountNo cannot be null.").build();
@@ -90,8 +87,8 @@ public class AccountService {
                 return Response.status(Response.Status.NOT_FOUND).entity("No account found, accountNo : " + accountNo).build();
             }
         } catch (Exception e){
-            log.severe("Error while getting account.");
-            throw new Exception(e);
+            log.severe(e.getMessage());
+            return Response.serverError().entity("Error while getting account.").build();
         }
         return Response.status(Response.Status.OK).entity(balance).build();
     }
@@ -101,21 +98,25 @@ public class AccountService {
      *
      * @param accountNo account number to delete
      * @return Response 204, 400, 404
-     * @throws Exception e
      */
     @DELETE
     @Path("/{accountNo}")
     @Produces(MediaType.APPLICATION_JSON)
-    public Response deleteAccount(@PathParam("accountNo") Long accountNo) throws Exception {
+    public Response deleteAccount(@PathParam("accountNo") Long accountNo) {
         log.info("REST : deleteAccount");
         if (accountNo == null) {
             return Response.serverError().entity("accountNo cannot be null.").build();
         }
-        Account.accountResponse response = h2Dao.getAccountDAO().deleteAccount(accountNo);
-        if (response.equals(Account.accountResponse.ACCOUNT_NOT_FOUND)) {
-            return Response.status(Response.Status.NOT_FOUND).entity("No account found, accountNo : " + accountNo).build();
-        } else if (response.equals(Account.accountResponse.BALANCE_NOT_ZERO)) {
-            return Response.status(Response.Status.BAD_REQUEST).entity(response.getErrorMessage()).build();
+        try {
+            Account.accountResponse response = h2Dao.getAccountDAO().deleteAccount(accountNo);
+            if (response.equals(Account.accountResponse.ACCOUNT_NOT_FOUND)) {
+                return Response.status(Response.Status.NOT_FOUND).entity("No account found, accountNo : " + accountNo).build();
+            } else if (response.equals(Account.accountResponse.BALANCE_NOT_ZERO)) {
+                return Response.status(Response.Status.BAD_REQUEST).entity(response.getErrorMessage()).build();
+            }
+        } catch (Exception e) {
+            log.severe(e.getMessage());
+            return Response.serverError().entity("Error while deleting account.").build();
         }
 
         return Response.status(Response.Status.NO_CONTENT).build();

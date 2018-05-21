@@ -30,7 +30,9 @@ public class TransferServiceTest extends TestService {
 
     @Test
     public void getValidTransfersByToAccountNo() throws Exception {
-        URI uri = builder.setPath("/transfers/to/56789012345").build();
+        URI uri = builder.setPath("/transfers/query")
+                .setParameter("to", "56789012345")
+                .build();
         HttpGet request = new HttpGet(uri);
         HttpResponse response = client.execute(request);
         int statusCode = response.getStatusLine().getStatusCode();
@@ -42,8 +44,10 @@ public class TransferServiceTest extends TestService {
     }
 
     @Test
-    public void getTransfersByFromAccountNo() throws Exception {
-        URI uri = builder.setPath("/transfers/from/12345678901").build();
+    public void getValidTransfersByFromAccountNo() throws Exception {
+        URI uri = builder.setPath("/transfers/query")
+                .setParameter("from", "12345678901")
+                .build();
         HttpGet request = new HttpGet(uri);
         HttpResponse response = client.execute(request);
         int statusCode = response.getStatusLine().getStatusCode();
@@ -52,6 +56,34 @@ public class TransferServiceTest extends TestService {
         String json = EntityUtils.toString(response.getEntity());
         Transfer[] transfers = mapper.readValue(json, Transfer[].class);
         assertTrue(transfers.length > 0);
+    }
+
+    @Test
+    public void getEmptyParamTransfersByAccountNo() throws Exception {
+        URI uri = builder.setPath("/transfers/query")
+                .build();
+        HttpGet request = new HttpGet(uri);
+        HttpResponse response = client.execute(request);
+        int statusCode = response.getStatusLine().getStatusCode();
+        assertEquals(500, statusCode);
+
+        String json = EntityUtils.toString(response.getEntity());
+        assertEquals("Source and Destination account numbers cannot be null.", json);
+    }
+
+    @Test
+    public void getBothParamsTransfersByAccountNo() throws Exception {
+        URI uri = builder.setPath("/transfers/query")
+                .setParameter("from", "12345678901")
+                .setParameter("to", "56789012345")
+                .build();
+        HttpGet request = new HttpGet(uri);
+        HttpResponse response = client.execute(request);
+        int statusCode = response.getStatusLine().getStatusCode();
+        assertEquals(500, statusCode);
+
+        String json = EntityUtils.toString(response.getEntity());
+        assertEquals("Source and Destination account numbers cannot be passed at the same time.", json);
     }
 
     @Test
@@ -59,12 +91,12 @@ public class TransferServiceTest extends TestService {
         URI uri = builder.setPath("/transfers").build();
         //Using String + Long.parseLong because literal numbers in java are by default ints
         //Range -2147483648 to  2147483647 inclusive (too small for this case)
-        String fromAccountNoStr = "23456789012";
+        String fromAccountNoStr = "12345678901";
         long fromAccountNo = Long.parseLong(fromAccountNoStr);
-        String toAccountNoStr = "45678901234";
+        String toAccountNoStr = "56789012345";
         long toAccountNo = Long.parseLong(toAccountNoStr);
         BigDecimal amount = new BigDecimal(10).setScale(2, BigDecimal.ROUND_HALF_EVEN);
-        Transfer transfer = new Transfer(fromAccountNo, toAccountNo, amount, "AUD");
+        Transfer transfer = new Transfer(fromAccountNo, toAccountNo, amount, "EUR");
 
         String jsonInString = mapper.writeValueAsString(transfer);
         StringEntity entity = new StringEntity(jsonInString);
@@ -76,10 +108,34 @@ public class TransferServiceTest extends TestService {
         assertEquals(201, statusCode);
 
         String json = EntityUtils.toString(response.getEntity());
-        transfer = mapper.readValue(json, Transfer.class);
-        assertNotNull(transfer);
-        assertEquals(new BigDecimal(10).setScale(2, BigDecimal.ROUND_HALF_EVEN), transfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN));
-        assertEquals(new BigDecimal(1.33).setScale(2, BigDecimal.ROUND_HALF_EVEN), transfer.getRate().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+        Transfer newTransfer = mapper.readValue(json, Transfer.class);
+        assertNotNull(newTransfer);
+        assertEquals(new BigDecimal(10).setScale(2, BigDecimal.ROUND_HALF_EVEN), newTransfer.getTransferAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+        assertEquals(new BigDecimal(1).setScale(2, BigDecimal.ROUND_HALF_EVEN), newTransfer.getRate().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+        assertEquals(new BigDecimal(10).setScale(2, BigDecimal.ROUND_HALF_EVEN), newTransfer.getDebitedAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+        assertEquals(new BigDecimal(10).setScale(2, BigDecimal.ROUND_HALF_EVEN), newTransfer.getCreditedAmount().setScale(2, BigDecimal.ROUND_HALF_EVEN));
+
+        URI uriBalance = builder.setPath("/accounts/12345678901/balance").build();
+        HttpGet requestBalance = new HttpGet(uriBalance);
+        HttpResponse responseBalance = client.execute(requestBalance);
+        int statusCodeBalance = responseBalance.getStatusLine().getStatusCode();
+        assertEquals(200, statusCodeBalance);
+
+        String jsonBalance = EntityUtils.toString(responseBalance.getEntity());
+        BigDecimal balance = mapper.readValue(jsonBalance, BigDecimal.class);
+        assertNotNull(balance);
+        assertEquals(new BigDecimal(490.57).setScale(2, BigDecimal.ROUND_HALF_EVEN), balance.setScale(2, BigDecimal.ROUND_HALF_EVEN));
+
+        URI uriBalance2 = builder.setPath("/accounts/56789012345/balance").build();
+        HttpGet requestBalance2 = new HttpGet(uriBalance2);
+        HttpResponse responseBalance2 = client.execute(requestBalance2);
+        int statusCodeBalance2 = responseBalance2.getStatusLine().getStatusCode();
+        assertEquals(200, statusCodeBalance2);
+
+        String jsonBalance2 = EntityUtils.toString(responseBalance2.getEntity());
+        BigDecimal balance2 = mapper.readValue(jsonBalance2, BigDecimal.class);
+        assertNotNull(balance2);
+        assertEquals(new BigDecimal(1181.06).setScale(2, BigDecimal.ROUND_HALF_EVEN), balance2.setScale(2, BigDecimal.ROUND_HALF_EVEN));
     }
 
     @Test
