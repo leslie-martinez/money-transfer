@@ -35,7 +35,7 @@ You can now test the endpoints described below:
 | /transfers                  | GET      |                  |   http://localhost:8080/transfers         | `200 OK`, `404 NOT FOUND`              |
 | /transfers/to/{accountNo}   | GET      |                  |http://localhost:8080/transfers/to/1234    | `200 OK`, `404 NOT FOUND`            |
 | /transfers/from/{accountNo} | GET      |                  |http://localhost:8080/transfers/from/1234  | `200 OK`, `404 NOT FOUND`            |
-| /transfers                  | POST     | {"sourceAccountNo": 89012345678,"destinationAccountNo": 12345678901,"transferAmount": 100,"transferCurrencyCode": "EUR"} | http://localhost:8080/transfers  | `200 OK` , `404 NOT FOUND`, `400 BAD REQUEST` |
+| /transfers                  | POST     | {"sourceAccountNo": 89012345678, "destinationAccountNo": 12345678901,"transferAmount": 100,"transferCurrencyCode": "EUR"} | http://localhost:8080/transfers  | `200 OK` , `404 NOT FOUND`, `400 BAD REQUEST` |
 | /customers                  | GET      |                  |   http://localhost:8080/customers         | `200 OK`, `404 NOT FOUND`              |
 | /customers/{accountNo}      | GET      |                  |   http://localhost:8080/customers/1234         | `200 OK`, `404 NOT FOUND`              |
 | /rates                  | GET      |                  |   http://localhost:8080/rates         | `200 OK`, `404 NOT FOUND`              |
